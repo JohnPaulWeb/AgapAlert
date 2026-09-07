@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "mobile",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Bantay Pilipinas uses your location to show alerts affecting your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts.",
+        "UIBackgroundModes": ["location", "remote-notification"]
+      }
+    },
+    "android": {
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "POST_NOTIFICATIONS"],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      ["expo-location", {"locationAlwaysAndWhenInUsePermission": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts."}],
+      ["expo-notifications", {"color": "#087E8B", "sounds": []}]
+    ]
+  }
+}
