@@ -44,11 +44,18 @@ import {
   Text,
   TextInput,
   View,
+  Linking,
 } from "react-native";
 import {
   setupNotificationHandler,
   requestNotificationPermissions,
 } from "./notifications";
+
+import MobileGoogleMap, {
+  MobileMapCenter,
+  MobileMapIncident,
+  MobileMapLocationPreset,
+} from "./components/MobileGoogleMap";
 
 // Unified Dark Disaster Palette matching Desktop
 const C = {
@@ -87,6 +94,8 @@ interface LocationPreset {
   windSpeed: number;
   rainRate: number;
   status: "Normal" | "Watch" | "Warning" | "Critical";
+  lat: number;
+  lng: number;
 }
 
 const LOCATIONS: LocationPreset[] = [
@@ -100,6 +109,8 @@ const LOCATIONS: LocationPreset[] = [
     windSpeed: 88,
     rainRate: 28,
     status: "Warning",
+    lat: 14.6507,
+    lng: 121.1029,
   },
   {
     id: "qc",
@@ -111,6 +122,8 @@ const LOCATIONS: LocationPreset[] = [
     windSpeed: 62,
     rainRate: 15,
     status: "Watch",
+    lat: 14.6760,
+    lng: 121.0437,
   },
   {
     id: "pasig",
@@ -122,6 +135,8 @@ const LOCATIONS: LocationPreset[] = [
     windSpeed: 75,
     rainRate: 22,
     status: "Warning",
+    lat: 14.5764,
+    lng: 121.0851,
   },
   {
     id: "cagayan",
@@ -133,6 +148,8 @@ const LOCATIONS: LocationPreset[] = [
     windSpeed: 140,
     rainRate: 45,
     status: "Critical",
+    lat: 17.6132,
+    lng: 121.7270,
   },
 ];
 
@@ -149,6 +166,8 @@ interface EvacCenter {
   features: string[];
   contact: string;
   elevation: string;
+  lat: number;
+  lng: number;
 }
 
 const INITIAL_CENTERS: EvacCenter[] = [
@@ -165,6 +184,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "Pet Friendly", "High Ground", "Generator Power"],
     contact: "(02) 8646-1633",
     elevation: "24m High Elevation",
+    lat: 14.6343,
+    lng: 121.0991,
   },
   {
     id: "c2",
@@ -179,6 +200,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "High Ground"],
     contact: "(02) 8941-2290",
     elevation: "21m Elevation",
+    lat: 14.6528,
+    lng: 121.1052,
   },
   {
     id: "c3",
@@ -193,6 +216,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Pet Friendly", "High Ground"],
     contact: "(02) 8646-0812",
     elevation: "22m Elevation",
+    lat: 14.6291,
+    lng: 121.1005,
   },
   {
     id: "c4",
@@ -207,6 +232,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "High Ground", "Solar Power"],
     contact: "(02) 8928-1144",
     elevation: "32m High Ground",
+    lat: 14.6468,
+    lng: 121.0776,
   },
   {
     id: "c5",
@@ -221,6 +248,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Pet Friendly"],
     contact: "(02) 8373-5521",
     elevation: "18m Elevation",
+    lat: 14.6496,
+    lng: 121.0367,
   },
 ];
 
@@ -233,6 +262,9 @@ interface IncidentReport {
   status: "NEW" | "ACKNOWLEDGED" | "DISPATCHED" | "RESOLVED";
   priority: "CRITICAL" | "HIGH" | "MEDIUM";
   details: string;
+  contact?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const INITIAL_REPORTS: IncidentReport[] = [
@@ -245,6 +277,9 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "NEW",
     priority: "CRITICAL",
     details: "4 families stranded on 2nd floor, water rising 10cm every 15 mins. Rescue boat requested.",
+    contact: "0917-882-1920",
+    lat: 14.6515,
+    lng: 121.1070,
   },
   {
     id: "rep-2",
@@ -255,6 +290,9 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "ACKNOWLEDGED",
     priority: "HIGH",
     details: "Elderly resident needs ambulance transport to high-ground hospital.",
+    contact: "0920-551-4432",
+    lat: 14.6280,
+    lng: 121.0965,
   },
   {
     id: "rep-3",
@@ -265,6 +303,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "DISPATCHED",
     priority: "MEDIUM",
     details: "60 evacuees have arrived. Water tanker truck dispatched from city hall.",
+    lat: 14.6335,
+    lng: 121.0872,
   },
   {
     id: "rep-4",
@@ -275,6 +315,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "RESOLVED",
     priority: "MEDIUM",
     details: "Barangay clearing crew removed debris. Road is now passable.",
+    lat: 14.6575,
+    lng: 121.1012,
   },
 ];
 
@@ -361,13 +403,12 @@ export default function App() {
   // Simulate water level spike
   const triggerSimulationSpike = () => {
     setIsSimulatingSpike(true);
-    Alert.alert("Simulating Storm Spike", "Simulating heavy rainfall inflow: Water level rising +0.8m!");
-    let count = 0;
+    let step = 0;
     const interval = setInterval(() => {
-      count++;
-      setLiveRiverLevel((prev) => Math.round((prev + 0.16) * 100) / 100);
-      setLiveRainRate((prev) => prev + 5);
-      if (count >= 5) {
+      step++;
+      setLiveRiverLevel((prev) => Math.round((prev + 0.15) * 100) / 100);
+      setLiveRainRate((prev) => prev + 4);
+      if (step >= 5) {
         clearInterval(interval);
         setIsSimulatingSpike(false);
       }
@@ -375,15 +416,19 @@ export default function App() {
   };
 
   const handleCreateReport = (newRep: Omit<IncidentReport, "id" | "timestamp" | "status">) => {
+    const latOffset = (Math.random() - 0.5) * 0.015;
+    const lngOffset = (Math.random() - 0.5) * 0.015;
     const item: IncidentReport = {
       ...newRep,
       id: `rep-${Date.now()}`,
       timestamp: "Just now",
       status: "NEW",
+      lat: newRep.lat || selectedLoc.lat + latOffset,
+      lng: newRep.lng || selectedLoc.lng + lngOffset,
     };
     setReports([item, ...reports]);
     setShowReportModal(false);
-    Alert.alert("Report Transmitted", "Your incident report has been queued for barangay rescue units.");
+    Alert.alert("Report Transmitted", "Your incident report has been queued and plotted on the Live Google Map.");
   };
 
   const handleUpdateStatus = (id: string, newStatus: IncidentReport["status"]) => {
@@ -541,57 +586,24 @@ export default function App() {
         {/* 5. Tab Views */}
         {screen === "radar" && (
           <View style={{ gap: 14 }}>
-            {/* Visual Vector Radar Canvas */}
-            <View style={styles.radarBox}>
+            {/* Live Interactive Google Map */}
+            <View style={{ gap: 8 }}>
               <View style={styles.radarHead}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Crosshair color={C.cyan} size={16} />
-                  <Text style={styles.radarTitle}>Live Community Hazard Radar</Text>
+                  <Text style={styles.radarTitle}>Live Hazard & Evacuation Map</Text>
                 </View>
                 <Text style={styles.syncText}>Synced {lastSyncTime}</Text>
               </View>
 
-              {/* Simulated Map Canvas */}
-              <View style={styles.mapCanvas}>
-                {/* River flow */}
-                <View style={styles.mapRiverFlow} />
-
-                {/* Evac Center Pin 1 */}
-                <Pressable
-                  style={[styles.mapPin, { top: "30%", left: "32%" }]}
-                  onPress={() => setSelectedCenter(centers[0])}
-                >
-                  <View style={styles.pinCenterBadge}>
-                    <Text style={styles.pinCenterText}>⌂</Text>
-                  </View>
-                </Pressable>
-
-                {/* Evac Center Pin 2 */}
-                <Pressable
-                  style={[styles.mapPin, { top: "58%", left: "65%" }]}
-                  onPress={() => setSelectedCenter(centers[1])}
-                >
-                  <View style={styles.pinCenterBadge}>
-                    <Text style={styles.pinCenterText}>⌂</Text>
-                  </View>
-                </Pressable>
-
-                {/* Flood Hazard Alert Marker */}
-                <Pressable
-                  style={[styles.mapPin, { top: "45%", left: "46%" }]}
-                  onPress={() => Alert.alert("Flood Alert", "Marikina Riverbank overflow near Tumana (16.4m).")}
-                >
-                  <View style={styles.pinHazardBadge}>
-                    <Text style={{ fontSize: 11 }}>🌊</Text>
-                  </View>
-                </Pressable>
-
-                {/* High ground safe route */}
-                <View style={styles.safeRouteBadge}>
-                  <Navigation color={C.cyan} size={11} />
-                  <Text style={styles.safeRouteText}>High-Ground Route Clear</Text>
-                </View>
-              </View>
+              <MobileGoogleMap
+                selectedLocation={selectedLoc}
+                centers={centers}
+                reports={reports}
+                liveRiverLevel={liveRiverLevel}
+                onSelectCenter={(c) => setSelectedCenter(c as any)}
+                onRequestSos={() => setShowSosModal(true)}
+              />
             </View>
 
             {/* Critical Alert Warning Card */}
@@ -842,21 +854,37 @@ export default function App() {
             <View style={styles.modalActionRow}>
               <Pressable
                 style={styles.outlineActionBtn}
-                onPress={() => Alert.alert("Call Desk", `Dialing: ${selectedCenter?.contact}`)}
+                onPress={() => {
+                  if (selectedCenter?.contact) {
+                    Linking.openURL(`tel:${selectedCenter.contact}`);
+                  }
+                }}
               >
-                <Phone color={C.cyan} size={16} />
+                <Phone color={C.cyan} size={14} />
                 <Text style={styles.outlineActionText}>Call Desk</Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.outlineActionBtn, { borderColor: "#4285F4" }]}
+                onPress={() => {
+                  if (selectedCenter) {
+                    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${selectedCenter.lat},${selectedCenter.lng}`);
+                  }
+                }}
+              >
+                <Navigation color="#4285F4" size={14} />
+                <Text style={[styles.outlineActionText, { color: "#4285F4" }]}>Google Maps ↗</Text>
               </Pressable>
 
               <Pressable
                 style={styles.primaryActionBtnModal}
                 onPress={() => {
                   setSelectedCenter(null);
-                  Alert.alert("Directions Initiated", `High-ground routing to ${selectedCenter?.name} active.`);
+                  setScreen("radar");
                 }}
               >
-                <Navigation color={C.bgPrimary} size={16} />
-                <Text style={styles.primaryActionTextModal}>Get Directions</Text>
+                <Compass color={C.bgPrimary} size={14} />
+                <Text style={styles.primaryActionTextModal}>Live Map</Text>
               </Pressable>
             </View>
           </View>

@@ -43,6 +43,18 @@ import {
   X,
 } from "lucide-react";
 
+import dynamic from "next/dynamic";
+
+const InteractiveMap = dynamic(() => import("@/components/InteractiveMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[580px] bg-[#071120] border border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-400">
+      <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></div>
+      <span className="text-xs font-bold tracking-wider">Initializing Live Geospatial Map...</span>
+    </div>
+  ),
+});
+
 // Types
 type Role = "resident" | "official";
 type Tab = "radar" | "centers" | "reports" | "hotlines";
@@ -60,6 +72,9 @@ interface LocationPreset {
   rainRate: number; // mm/h
   status: "Normal" | "Watch" | "Warning" | "Critical";
   evacCentersCount: number;
+  lat: number;
+  lng: number;
+  zoom: number;
 }
 
 const LOCATIONS: LocationPreset[] = [
@@ -76,6 +91,9 @@ const LOCATIONS: LocationPreset[] = [
     rainRate: 28,
     status: "Warning",
     evacCentersCount: 6,
+    lat: 14.6507,
+    lng: 121.1029,
+    zoom: 14,
   },
   {
     id: "qc",
@@ -90,6 +108,9 @@ const LOCATIONS: LocationPreset[] = [
     rainRate: 15,
     status: "Watch",
     evacCentersCount: 8,
+    lat: 14.6760,
+    lng: 121.0437,
+    zoom: 13,
   },
   {
     id: "pasig",
@@ -104,6 +125,9 @@ const LOCATIONS: LocationPreset[] = [
     rainRate: 22,
     status: "Warning",
     evacCentersCount: 5,
+    lat: 14.5764,
+    lng: 121.0851,
+    zoom: 14,
   },
   {
     id: "cagayan",
@@ -118,6 +142,9 @@ const LOCATIONS: LocationPreset[] = [
     rainRate: 45,
     status: "Critical",
     evacCentersCount: 12,
+    lat: 17.6132,
+    lng: 121.7270,
+    zoom: 13,
   },
 ];
 
@@ -134,6 +161,8 @@ interface EvacCenter {
   features: string[];
   contact: string;
   elevation: string;
+  lat: number;
+  lng: number;
 }
 
 const INITIAL_CENTERS: EvacCenter[] = [
@@ -150,6 +179,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "Pet Friendly", "High Ground", "Generator Power"],
     contact: "(02) 8646-1633",
     elevation: "24m High Elevation",
+    lat: 14.6343,
+    lng: 121.0991,
   },
   {
     id: "c2",
@@ -164,6 +195,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "High Ground"],
     contact: "(02) 8941-2290",
     elevation: "21m Elevation",
+    lat: 14.6528,
+    lng: 121.1052,
   },
   {
     id: "c3",
@@ -178,6 +211,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Pet Friendly", "High Ground"],
     contact: "(02) 8646-0812",
     elevation: "22m Elevation",
+    lat: 14.6291,
+    lng: 121.1005,
   },
   {
     id: "c4",
@@ -192,6 +227,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "High Ground", "Solar Power"],
     contact: "(02) 8928-1144",
     elevation: "32m High Ground",
+    lat: 14.6468,
+    lng: 121.0776,
   },
   {
     id: "c5",
@@ -206,6 +243,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Pet Friendly"],
     contact: "(02) 8373-5521",
     elevation: "18m Elevation",
+    lat: 14.6496,
+    lng: 121.0367,
   },
   {
     id: "c6",
@@ -220,6 +259,8 @@ const INITIAL_CENTERS: EvacCenter[] = [
     features: ["Medical Aid", "High Ground"],
     contact: "(02) 8641-0022",
     elevation: "20m Elevation",
+    lat: 14.6105,
+    lng: 121.0883,
   },
 ];
 
@@ -233,6 +274,8 @@ interface IncidentReport {
   priority: "CRITICAL" | "HIGH" | "MEDIUM";
   details: string;
   contact?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const INITIAL_REPORTS: IncidentReport[] = [
@@ -246,6 +289,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     priority: "CRITICAL",
     details: "4 families stranded on 2nd floor with 2 elderly seniors. Water rising 10cm every 15 mins. Rescue boat requested.",
     contact: "0917-882-1920",
+    lat: 14.6515,
+    lng: 121.1070,
   },
   {
     id: "rep-2",
@@ -257,6 +302,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     priority: "HIGH",
     details: "Elderly resident on oxygen concentrator lost power. Needs ambulance transfer to high-ground hospital.",
     contact: "0920-551-4432",
+    lat: 14.6280,
+    lng: 121.0965,
   },
   {
     id: "rep-3",
@@ -267,6 +314,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "DISPATCHED",
     priority: "MEDIUM",
     details: "60 evacuees have arrived. Water tanker truck dispatched from city hall.",
+    lat: 14.6335,
+    lng: 121.0872,
   },
   {
     id: "rep-4",
@@ -277,6 +326,8 @@ const INITIAL_REPORTS: IncidentReport[] = [
     status: "RESOLVED",
     priority: "MEDIUM",
     details: "DPWH & Barangay chainsaw clearing crew cleared one lane. Passable for rescue 4x4s.",
+    lat: 14.6575,
+    lng: 121.1012,
   },
 ];
 
@@ -374,6 +425,8 @@ export default function Page() {
   const handleCreateReport = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const latOffset = (Math.random() - 0.5) * 0.015;
+    const lngOffset = (Math.random() - 0.5) * 0.015;
     const newRep: IncidentReport = {
       id: `rep-${Date.now()}`,
       category: formData.get("category") as any,
@@ -384,10 +437,12 @@ export default function Page() {
       priority: (formData.get("priority") as any) || "HIGH",
       details: formData.get("details") as string,
       contact: formData.get("contact") as string,
+      lat: selectedLocation.lat + latOffset,
+      lng: selectedLocation.lng + lngOffset,
     };
     setReports([newRep, ...reports]);
     setShowReportModal(false);
-    setToastMessage("✓ Incident report successfully transmitted to Barangay Response Command!");
+    setToastMessage("✓ Incident report successfully transmitted to Barangay Response Command & plotted on Live Map!");
   };
 
   // Update report status (Official action)
@@ -402,11 +457,13 @@ export default function Page() {
       id: `sos-${Date.now()}`,
       category: "sos",
       title: "🚨 CRITICAL SOS: Immediate Boat & Life Rescue Requested",
-      location: `${selectedLocation.name} (Live GPS Coords: 14.6507° N, 121.1029° E)`,
+      location: `${selectedLocation.name} (Live GPS Coords: ${selectedLocation.lat.toFixed(4)}° N, ${selectedLocation.lng.toFixed(4)}° E)`,
       timestamp: "Just now",
       status: "NEW",
       priority: "CRITICAL",
       details: "Resident activated emergency SOS beacon. Water entered residence, life-threatening situation.",
+      lat: selectedLocation.lat + 0.003,
+      lng: selectedLocation.lng - 0.002,
     };
     setReports([sosItem, ...reports]);
     setShowSosModal(false);
@@ -550,8 +607,8 @@ export default function Page() {
                 activeTab === "radar" ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30" : "text-slate-400 hover:text-white"
               }`}
             >
-              <Radio className="w-3.5 h-3.5" />
-              Live Radar
+              <Compass className="w-3.5 h-3.5" />
+              Live Map & Radar
             </button>
             <button
               onClick={() => setActiveTab("centers")}
@@ -793,99 +850,31 @@ export default function Page() {
         {/* TAB 1: Live Radar & Interactive Threat Map */}
         {activeTab === "radar" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Live Interactive Canvas Map */}
-            <div className="lg:col-span-2 bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
+            {/* Live Interactive Leaflet Map */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-black text-white flex items-center gap-2">
                     <Crosshair className="w-5 h-5 text-cyan-400" />
-                    Live Community Hazard & Evacuation Radar
+                    Live Community Hazard & Evacuation Map
                   </h3>
-                  <p className="text-xs text-slate-400">Click on map markers to view safe high-ground routes and flood hazard levels.</p>
+                  <p className="text-xs text-slate-400">Interactive OpenStreetMap view with evacuation shelters, flood hazard zones, and GPS routes.</p>
                 </div>
                 <span className="text-[11px] font-bold text-slate-400 bg-slate-900 px-2.5 py-1 rounded-full border border-slate-800">
                   Synced {lastSyncTime}
                 </span>
               </div>
 
-              {/* Simulated Visual Vector Radar */}
-              <div className="relative w-full h-80 sm:h-96 bg-[#06101D] border border-slate-800 rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
-                {/* Radar Grid Lines */}
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b15_1px,transparent_1px),linear-gradient(to_bottom,#1e293b15_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-                
-                {/* Radar Sweep Animation */}
-                <div className="absolute inset-0 rounded-full border border-cyan-500/20 m-auto w-72 h-72 animate-pulse"></div>
-                <div className="absolute inset-0 rounded-full border border-cyan-500/10 m-auto w-48 h-48"></div>
-
-                {/* River Corridor Visual */}
-                <div className="absolute top-0 bottom-0 left-[42%] w-16 bg-gradient-to-r from-cyan-900/40 via-cyan-600/30 to-cyan-900/40 blur-sm transform -rotate-12"></div>
-
-                {/* Interactive Markers */}
-                {/* Evacuation Center Marker 1 */}
-                <button
-                  onClick={() => setSelectedCenter(centers[0])}
-                  className="absolute top-[28%] left-[34%] group cursor-pointer"
-                  title="Marikina Sports Center (Open)"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/50 hover:scale-110 transition border border-white/40">
-                    ⌂
-                  </div>
-                  <span className="absolute left-10 top-1 text-[11px] font-bold bg-slate-900/90 text-white px-2 py-0.5 rounded border border-slate-700 whitespace-nowrap shadow">
-                    Sports Center (166 spaces)
-                  </span>
-                </button>
-
-                {/* Evacuation Center Marker 2 */}
-                <button
-                  onClick={() => setSelectedCenter(centers[1])}
-                  className="absolute top-[58%] left-[62%] group cursor-pointer"
-                  title="Concepcion Elem School (Open)"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-lg shadow-emerald-500/50 hover:scale-110 transition border border-white/40">
-                    ⌂
-                  </div>
-                  <span className="absolute left-9 top-1 text-[11px] font-bold bg-slate-900/90 text-white px-2 py-0.5 rounded border border-slate-700 whitespace-nowrap shadow">
-                    Concepcion Elem (68 spaces)
-                  </span>
-                </button>
-
-                {/* Flood Hazard Alert Marker */}
-                <button
-                  onClick={() => setToastMessage("⚠️ HAZARD WARNING: Riverbank overflow near Tumana. Avoid ground floor roads.")}
-                  className="absolute top-[48%] left-[44%] group cursor-pointer animate-pulse"
-                >
-                  <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-black shadow-lg shadow-red-600/60 hover:scale-110 transition border border-white/60">
-                    🌊
-                  </div>
-                  <span className="absolute -top-7 -left-12 text-[10px] font-black bg-red-950/90 text-red-200 px-2 py-0.5 rounded border border-red-500/60 whitespace-nowrap">
-                    RIVER OVERFLOW (16.4m)
-                  </span>
-                </button>
-
-                {/* Safe High-ground Route Marker */}
-                <div className="absolute top-[72%] left-[25%] flex items-center gap-1.5 bg-cyan-950/80 border border-cyan-500/40 text-cyan-200 px-2.5 py-1 rounded-full text-xs font-bold">
-                  <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>High-Ground Route Clear</span>
-                </div>
-              </div>
-
-              {/* Map Legend */}
-              <div className="mt-4 flex items-center justify-between flex-wrap gap-3 text-xs text-slate-400 border-t border-slate-800 pt-3">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded bg-emerald-500"></span> Open Evac Center
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-red-500"></span> Flood Hazard Zone
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded bg-cyan-500"></span> Safe Route
-                  </span>
-                </div>
-                <span className="text-cyan-400 font-bold cursor-pointer hover:underline" onClick={() => setActiveTab("centers")}>
-                  View All Centers List →
-                </span>
-              </div>
+              {/* Map Component */}
+              <InteractiveMap
+                selectedLocation={selectedLocation}
+                centers={centers}
+                reports={reports}
+                liveRiverLevel={liveRiverLevel}
+                onSelectCenter={(center) => setSelectedCenter(center)}
+                onRequestSos={() => setShowSosModal(true)}
+                onReportHazard={() => setShowReportModal(true)}
+              />
             </div>
 
             {/* Official Urgent Warnings & Emergency Actions */}
@@ -1052,12 +1041,14 @@ export default function Page() {
                       </button>
                       <button
                         onClick={() => {
-                          setToastMessage(`Routing initiated for ${center.name}. Stay on high-ground roads.`);
+                          setSelectedCenter(center);
+                          setActiveTab("radar");
+                          setToastMessage(`Locating ${center.name} on Google-style Live Map...`);
                         }}
                         className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs py-2 rounded-xl transition flex items-center justify-center gap-1 cursor-pointer"
                       >
                         <Navigation className="w-3.5 h-3.5" />
-                        Directions
+                        Directions & Map
                       </button>
                     </div>
                   </div>
@@ -1269,23 +1260,33 @@ export default function Page() {
             </div>
 
             {/* Modal Actions */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-slate-800">
               <a
                 href={`tel:${selectedCenter.contact}`}
                 className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
               >
-                <Phone className="w-4 h-4 text-cyan-400" />
+                <Phone className="w-3.5 h-3.5 text-cyan-400" />
                 Call Desk
+              </a>
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCenter.lat},${selectedCenter.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Google Maps ↗
               </a>
               <button
                 onClick={() => {
                   setSelectedCenter(null);
-                  setToastMessage(`Routing directions to ${selectedCenter.name} generated!`);
+                  setActiveTab("radar");
+                  setToastMessage(`Routing directions to ${selectedCenter.name} on Live Map!`);
                 }}
                 className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Navigation className="w-4 h-4" />
-                Start High-Ground Route
+                <Navigation className="w-3.5 h-3.5" />
+                Live Route Map
               </button>
             </div>
           </div>
