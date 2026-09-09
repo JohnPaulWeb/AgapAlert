@@ -39,6 +39,8 @@ import {
   Footprints,
   X,
   ChevronRight,
+  RotateCcw,
+  RotateCw,
 } from "lucide-react-native";
 
 export interface MobileMapCenter {
@@ -92,7 +94,7 @@ interface MobileGoogleMapProps {
   onRequestSos?: () => void;
 }
 
-// Generate self-contained HTML for Leaflet with Google Maps tiles & full touch controls
+// Generate self-contained HTML for MapLibre GL with Google Maps tiles & full touch rotation controls
 function generateMapHtml(
   centerLat: number,
   centerLng: number,
@@ -110,19 +112,39 @@ function generateMapHtml(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body, #map { width: 100%; height: 100%; background: #070F1E; }
-    .leaflet-control-attribution { display: none !important; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body, #map { width: 100%; height: 100%; background: #070F1E; overflow: hidden; }
+    .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo { display: none !important; }
+    
+    .maplibregl-ctrl-top-right {
+      top: 10px;
+      right: 10px;
+    }
+    .maplibregl-ctrl-compass {
+      background-color: rgba(15, 23, 42, 0.9) !important;
+      border: 1px solid rgba(56, 189, 248, 0.4) !important;
+      border-radius: 50% !important;
+      width: 38px !important;
+      height: 38px !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+    }
+    .maplibregl-ctrl-compass .maplibregl-ctrl-icon {
+      filter: invert(1) drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+    }
     
     .google-pin {
       position: relative;
       width: 36px;
       height: 46px;
-      transform: translate(-50%, -100%);
       cursor: pointer;
-      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5));
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.6));
+      transform: translate(-50%, -100%);
+      transition: transform 0.15s ease-out;
+    }
+    .google-pin:active {
+      transform: translate(-50%, -100%) scale(1.15);
     }
     
     .beds-chip {
@@ -138,151 +160,379 @@ function generateMapHtml(
       border-radius: 9999px;
       white-space: nowrap;
       border: 1px solid #10b981;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
     .incident-pin {
       position: relative;
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       background: #ef4444;
       border: 2px solid #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 13px;
+      font-size: 14px;
       transform: translate(-50%, -50%);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.6);
+      cursor: pointer;
+    }
+
+    .user-location-marker {
+      width: 32px;
+      height: 32px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+    }
+    .user-pulse-ring {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(66, 133, 244, 0.4);
+      animation: pulse 1.6s ease-out infinite;
+    }
+    .user-dot {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4285F4;
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.6); opacity: 0; }
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
   <script>
-    var map = L.map('map', {
-      center: [${centerLat}, ${centerLng}],
+    var currentTileUrl = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
+    
+    var map = new maplibregl.Map({
+      container: 'map',
+      style: {
+        version: 8,
+        sources: {
+          'google-tiles': {
+            type: 'raster',
+            tiles: [currentTileUrl],
+            tileSize: 256,
+            attribution: 'Google Maps'
+          }
+        },
+        layers: [
+          {
+            id: 'google-tiles-layer',
+            type: 'raster',
+            source: 'google-tiles',
+            minzoom: 0,
+            maxzoom: 22
+          }
+        ]
+      },
+      center: [${centerLng}, ${centerLat}],
       zoom: 14,
-      zoomControl: false
+      bearing: 0,
+      pitch: 0,
+      touchZoomRotate: true,
+      touchPitch: true,
+      dragRotate: true,
+      pitchWithRotate: true,
+      maxPitch: 65,
+      attributionControl: false
     });
 
-    // Google Maps Standard Road Tile Layer
-    var currentTile = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
-      maxZoom: 20
-    }).addTo(map);
+    // Native interactive compass
+    map.addControl(new maplibregl.NavigationControl({
+      showCompass: true,
+      showZoom: false,
+      visualizePitch: true
+    }), 'top-right');
 
     var centersData = ${centersJson};
     var reportsData = ${reportsJson};
-    var markersLayer = L.layerGroup().addTo(map);
-    var routeLayer = L.layerGroup().addTo(map);
-    var hazardLayer = L.layerGroup().addTo(map);
+    var centerMarkers = [];
+    var reportMarkers = [];
+    var userLocationMarker = null;
 
-    // Hazard Zones
-    var hazardCoords = [
-      [${centerLat} + 0.012, ${centerLng} - 0.003],
-      [${centerLat} + 0.006, ${centerLng} + 0.002],
-      [${centerLat} - 0.004, ${centerLng} + 0.005],
-      [${centerLat} - 0.006, ${centerLng} - 0.001],
-      [${centerLat} + 0.003, ${centerLng} - 0.007]
-    ];
-    L.polygon(hazardCoords, {
-      color: '#ef4444',
-      fillColor: '#ef4444',
-      fillOpacity: 0.25,
-      weight: 2,
-      dashArray: '5, 5'
-    }).addTo(hazardLayer);
+    // Report rotation / pitch back to React Native
+    function sendBearingUpdate() {
+      var bearing = Math.round(map.getBearing());
+      var pitch = Math.round(map.getPitch());
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'MAP_ROTATION_UPDATE',
+          bearing: bearing,
+          pitch: pitch
+        }));
+      }
+    }
 
-    // Safe route polyline
-    var safeRouteCoords = [
-      [${centerLat} - 0.015, ${centerLng} - 0.004],
-      [${centerLat} - 0.005, ${centerLng} + 0.005],
-      [${centerLat} + 0.002, ${centerLng} + 0.012]
-    ];
-    L.polyline(safeRouteCoords, {
-      color: '#0F9D58',
-      weight: 4,
-      dashArray: '6, 4',
-      opacity: 0.85
-    }).addTo(map);
+    map.on('rotate', sendBearingUpdate);
+    map.on('pitch', sendBearingUpdate);
+    map.on('rotateend', sendBearingUpdate);
+
+    // Setup GeoJSON layers once map style loads
+    map.on('load', function() {
+      // 1. Hazard Zones Polygon
+      var hazardPolygon = {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [${centerLng} - 0.003, ${centerLat} + 0.012],
+            [${centerLng} + 0.002, ${centerLat} + 0.006],
+            [${centerLng} + 0.005, ${centerLat} - 0.004],
+            [${centerLng} - 0.001, ${centerLat} - 0.006],
+            [${centerLng} - 0.007, ${centerLat} + 0.003],
+            [${centerLng} - 0.003, ${centerLat} + 0.012]
+          ]]
+        }
+      };
+
+      map.addSource('hazard-zone-src', {
+        type: 'geojson',
+        data: hazardPolygon
+      });
+
+      map.addLayer({
+        id: 'hazard-zone-fill',
+        type: 'fill',
+        source: 'hazard-zone-src',
+        paint: {
+          'fill-color': '#ef4444',
+          'fill-opacity': 0.22
+        }
+      });
+
+      map.addLayer({
+        id: 'hazard-zone-line',
+        type: 'line',
+        source: 'hazard-zone-src',
+        paint: {
+          'line-color': '#ef4444',
+          'line-width': 2.5,
+          'line-dasharray': [3, 2]
+        }
+      });
+
+      // 2. Safe High-Ground Route Polyline
+      var safeRoute = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [${centerLng} - 0.004, ${centerLat} - 0.015],
+            [${centerLng} + 0.005, ${centerLat} - 0.005],
+            [${centerLng} + 0.012, ${centerLat} + 0.002]
+          ]
+        }
+      };
+
+      map.addSource('safe-route-src', {
+        type: 'geojson',
+        data: safeRoute
+      });
+
+      map.addLayer({
+        id: 'safe-route-line',
+        type: 'line',
+        source: 'safe-route-src',
+        paint: {
+          'line-color': '#0F9D58',
+          'line-width': 4.5,
+          'line-dasharray': [4, 3],
+          'line-opacity': 0.85
+        }
+      });
+
+      // 3. Dynamic Navigation Active Route
+      map.addSource('nav-route-src', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: []
+          }
+        }
+      });
+
+      map.addLayer({
+        id: 'nav-route-glow',
+        type: 'line',
+        source: 'nav-route-src',
+        paint: {
+          'line-color': '#1a73e8',
+          'line-width': 9,
+          'line-opacity': 0.45
+        }
+      });
+
+      map.addLayer({
+        id: 'nav-route-line',
+        type: 'line',
+        source: 'nav-route-src',
+        paint: {
+          'line-color': '#4285F4',
+          'line-width': 6,
+          'line-opacity': 0.95
+        }
+      });
+
+      renderCenters(centersData);
+      renderReports(reportsData);
+      sendBearingUpdate();
+    });
 
     // Render Centers
     function renderCenters(data) {
-      markersLayer.clearLayers();
+      centerMarkers.forEach(function(m) { m.remove(); });
+      centerMarkers = [];
+
       data.forEach(function(c) {
         if (!c.lat || !c.lng) return;
         var isOpen = c.status === 'Open' && c.occupancy < c.capacity;
         var color = isOpen ? '#0F9D58' : '#EA4335';
         var beds = c.capacity - c.occupancy;
 
-        var icon = L.divIcon({
-          className: 'google-custom-marker',
-          html: '<div class="google-pin">' +
-            '<svg width="36" height="46" viewBox="0 0 38 48" fill="none">' +
-            '<path d="M19 0C8.5 0 0 8.5 0 19C0 31.5 19 48 19 48C19 48 38 31.5 38 19C38 8.5 29.5 0 19 0Z" fill="' + color + '"/>' +
-            '<circle cx="19" cy="18" r="14" fill="#ffffff"/>' +
-            '<text x="19" y="22" font-size="13" font-family="sans-serif" font-weight="900" text-anchor="middle" fill="' + color + '">⌂</text>' +
-            '</svg>' +
-            '<div class="beds-chip" style="border-color:' + color + '">' + beds + ' beds</div>' +
-            '</div>',
-          iconSize: [36, 46],
-          iconAnchor: [18, 46]
-        });
+        var el = document.createElement('div');
+        el.className = 'google-pin';
+        el.innerHTML =
+          '<svg width="36" height="46" viewBox="0 0 38 48" fill="none">' +
+          '<path d="M19 0C8.5 0 0 8.5 0 19C0 31.5 19 48 19 48C19 48 38 31.5 38 19C38 8.5 29.5 0 19 0Z" fill="' + color + '"/>' +
+          '<circle cx="19" cy="18" r="14" fill="#ffffff"/>' +
+          '<text x="19" y="22" font-size="13" font-family="sans-serif" font-weight="900" text-anchor="middle" fill="' + color + '">⌂</text>' +
+          '</svg>' +
+          '<div class="beds-chip" style="border-color:' + color + '">' + beds + ' beds</div>';
 
-        var m = L.marker([c.lat, c.lng], { icon: icon });
-        m.on('click', function() {
+        el.addEventListener('click', function(e) {
+          e.stopPropagation();
           if (window.ReactNativeWebView) {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'SELECT_CENTER', centerId: c.id }));
           }
         });
-        markersLayer.addLayer(m);
+
+        var marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+          .setLngLat([c.lng, c.lat])
+          .addTo(map);
+
+        centerMarkers.push(marker);
       });
     }
 
     // Render Incident Pins
     function renderReports(data) {
+      reportMarkers.forEach(function(m) { m.remove(); });
+      reportMarkers = [];
+
       data.forEach(function(r) {
         if (!r.lat || !r.lng) return;
         var isSos = r.category === 'sos' || r.priority === 'CRITICAL';
         var symbol = isSos ? '🚨' : '⚠️';
-        var icon = L.divIcon({
-          className: 'incident-marker',
-          html: '<div class="incident-pin">' + symbol + '</div>',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
-        });
-        var m = L.marker([r.lat, r.lng], { icon: icon });
-        markersLayer.addLayer(m);
+
+        var el = document.createElement('div');
+        el.className = 'incident-pin';
+        el.style.backgroundColor = isSos ? '#ef4444' : '#f59e0b';
+        el.innerHTML = symbol;
+
+        var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([r.lng, r.lat])
+          .addTo(map);
+
+        reportMarkers.push(marker);
       });
     }
 
-    renderCenters(centersData);
-    renderReports(reportsData);
+    // Update User GPS Marker
+    function setUserLocation(lat, lng) {
+      if (userLocationMarker) {
+        userLocationMarker.setLngLat([lng, lat]);
+      } else {
+        var el = document.createElement('div');
+        el.className = 'user-location-marker';
+        el.innerHTML = '<div class="user-pulse-ring"></div><div class="user-dot"></div>';
+        userLocationMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([lng, lat])
+          .addTo(map);
+      }
+    }
 
     // Messaging handler from React Native
     window.handleNativeMessage = function(msg) {
       try {
         var data = JSON.parse(msg);
         if (data.type === 'FLY_TO') {
-          map.flyTo([data.lat, data.lng], 15, { duration: 1 });
+          map.flyTo({ center: [data.lng, data.lat], zoom: 15, duration: 1000 });
+        } else if (data.type === 'SET_BEARING') {
+          map.easeTo({ bearing: data.bearing, duration: 400 });
+        } else if (data.type === 'ROTATE_BY') {
+          var targetBearing = map.getBearing() + data.delta;
+          map.easeTo({ bearing: targetBearing, duration: 400 });
+        } else if (data.type === 'RESET_NORTH') {
+          map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+        } else if (data.type === 'TOGGLE_PITCH') {
+          var currentPitch = map.getPitch();
+          var targetPitch = currentPitch > 20 ? 0 : 55;
+          map.easeTo({ pitch: targetPitch, duration: 500 });
+        } else if (data.type === 'SET_USER_POS') {
+          setUserLocation(data.lat, data.lng);
+          map.flyTo({ center: [data.lng, data.lat], zoom: 16, duration: 1000 });
         } else if (data.type === 'CHANGE_LAYER') {
-          map.removeLayer(currentTile);
+          var url = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}';
           if (data.layer === 'satellite' || data.layer === 'hybrid') {
-            currentTile = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+            url = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}';
           } else if (data.layer === 'terrain') {
-            currentTile = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
-          } else {
-            currentTile = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', { maxZoom: 20 }).addTo(map);
+            url = 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}';
+          }
+          currentTileUrl = url;
+          if (map.getSource('google-tiles')) {
+            map.removeLayer('google-tiles-layer');
+            map.removeSource('google-tiles');
+            map.addSource('google-tiles', {
+              type: 'raster',
+              tiles: [currentTileUrl],
+              tileSize: 256
+            });
+            var firstLayerId = map.getLayer('hazard-zone-fill') ? 'hazard-zone-fill' : undefined;
+            map.addLayer({
+              id: 'google-tiles-layer',
+              type: 'raster',
+              source: 'google-tiles',
+              minzoom: 0,
+              maxzoom: 22
+            }, firstLayerId);
           }
         } else if (data.type === 'DRAW_ROUTE') {
-          routeLayer.clearLayers();
           var points = [
-            [data.startLat, data.startLng],
-            [(data.startLat + data.endLat)/2 + 0.0015, (data.startLng + data.endLng)/2 - 0.0018],
-            [data.endLat, data.endLng]
+            [data.startLng, data.startLat],
+            [(data.startLng + data.endLng)/2 - 0.0018, (data.startLat + data.endLat)/2 + 0.0015],
+            [data.endLng, data.endLat]
           ];
-          var line = L.polyline(points, { color: '#4285F4', weight: 6, opacity: 0.95 }).addTo(routeLayer);
-          map.fitBounds(line.getBounds(), { padding: [50, 50] });
+          var src = map.getSource('nav-route-src');
+          if (src) {
+            src.setData({
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: points
+              }
+            });
+          }
+          var minLng = Math.min(data.startLng, data.endLng) - 0.005;
+          var maxLng = Math.max(data.startLng, data.endLng) + 0.005;
+          var minLat = Math.min(data.startLat, data.endLat) - 0.005;
+          var maxLat = Math.max(data.startLat, data.endLat) + 0.005;
+          map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 1000 });
         } else if (data.type === 'FILTER_CENTERS') {
           renderCenters(data.centers);
         }
@@ -312,8 +562,11 @@ export default function MobileGoogleMap({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChipFilter, setActiveChipFilter] = useState<"all" | "open" | "medical" | "pets" | "highground">("all");
   const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [showRotateMenu, setShowRotateMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapBearing, setMapBearing] = useState(0);
+  const [mapPitch, setMapPitch] = useState(0);
 
   // Selected place / active navigation route
   const [selectedCenter, setSelectedCenter] = useState<MobileMapCenter | null>(null);
@@ -377,6 +630,21 @@ export default function MobileGoogleMap({
     });
   }, [filteredCenters]);
 
+  // Rotation and Perspective controls
+  const handleResetNorth = () => {
+    postToWeb({ type: "RESET_NORTH" });
+    setMapBearing(0);
+    setMapPitch(0);
+  };
+
+  const handleRotateBy = (delta: number) => {
+    postToWeb({ type: "ROTATE_BY", delta });
+  };
+
+  const handleTogglePitch = () => {
+    postToWeb({ type: "TOGGLE_PITCH" });
+  };
+
   // Request & Fetch User GPS Location
   const handleLocateMe = async () => {
     try {
@@ -393,7 +661,7 @@ export default function MobileGoogleMap({
       setIsLocating(false);
 
       postToWeb({
-        type: "FLY_TO",
+        type: "SET_USER_POS",
         lat: pos.latitude,
         lng: pos.longitude,
       });
@@ -435,6 +703,9 @@ export default function MobileGoogleMap({
         if (found) {
           setSelectedCenter(found);
         }
+      } else if (data.type === "MAP_ROTATION_UPDATE") {
+        setMapBearing(data.bearing || 0);
+        setMapPitch(data.pitch || 0);
       }
     } catch (e) {}
   };
@@ -507,8 +778,39 @@ export default function MobileGoogleMap({
         </View>
       </View>
 
-      {/* 3. Bottom Right Google FABs */}
+      {/* 3. Bottom Right Action Controls & Dynamic Compass */}
       <View style={styles.fabColumn}>
+        {/* Dynamic Compass / Bearing Reset FAB */}
+        <Pressable
+          style={[
+            styles.fab,
+            (mapBearing !== 0 || mapPitch !== 0) && styles.fabActive,
+          ]}
+          onPress={handleResetNorth}
+          onLongPress={() => setShowRotateMenu(!showRotateMenu)}
+        >
+          <View style={{ transform: [{ rotate: `${-mapBearing}deg` }] }}>
+            <Compass
+              color={mapBearing !== 0 || mapPitch !== 0 ? "#EF4444" : "#38BDF8"}
+              size={20}
+            />
+          </View>
+          {mapBearing !== 0 && (
+            <View style={styles.bearingBadge}>
+              <Text style={styles.bearingBadgeText}>{Math.abs(mapBearing)}°</Text>
+            </View>
+          )}
+        </Pressable>
+
+        {/* Rotate & 3D Tilt HUD Toggle */}
+        <Pressable
+          style={[styles.fab, showRotateMenu && styles.fabActive]}
+          onPress={() => setShowRotateMenu(!showRotateMenu)}
+        >
+          <RotateCw color="#38BDF8" size={17} />
+        </Pressable>
+
+        {/* Fullscreen Toggle */}
         <Pressable
           style={styles.fab}
           onPress={() => setIsFullscreen(!isFullscreen)}
@@ -516,13 +818,15 @@ export default function MobileGoogleMap({
           {isFullscreen ? <Minimize2 color="#38BDF8" size={18} /> : <Maximize2 color="#38BDF8" size={18} />}
         </Pressable>
 
+        {/* Layers Picker */}
         <Pressable
-          style={styles.fab}
+          style={[styles.fab, showLayerMenu && styles.fabActive]}
           onPress={() => setShowLayerMenu(!showLayerMenu)}
         >
           <Layers color="#38BDF8" size={18} />
         </Pressable>
 
+        {/* Locate Me GPS */}
         <Pressable
           style={[styles.fab, isLocating && { opacity: 0.6 }]}
           onPress={handleLocateMe}
@@ -531,7 +835,65 @@ export default function MobileGoogleMap({
         </Pressable>
       </View>
 
-      {/* 4. Layer Switcher Menu */}
+      {/* 4. Interactive Rotation & 3D Tilt HUD */}
+      {showRotateMenu && (
+        <View style={styles.rotateHudCard}>
+          <View style={styles.rotateHudHeader}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Compass color="#38BDF8" size={14} />
+              <Text style={styles.rotateHudTitle}>
+                Map Orientation ({mapBearing !== 0 ? `${mapBearing > 0 ? "+" : ""}${mapBearing}°` : "True North"})
+              </Text>
+            </View>
+            <Pressable onPress={() => setShowRotateMenu(false)}>
+              <X color="#94A3B8" size={15} />
+            </Pressable>
+          </View>
+
+          <Text style={styles.rotateHintText}>
+            Twist with 2 fingers or tap controls below:
+          </Text>
+
+          <View style={styles.rotateButtonsRow}>
+            <Pressable
+              style={styles.rotateBtn}
+              onPress={() => handleRotateBy(-45)}
+            >
+              <RotateCcw color="#38BDF8" size={14} />
+              <Text style={styles.rotateBtnText}>-45° Left</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.rotateBtn, mapBearing === 0 && styles.rotateBtnActive]}
+              onPress={handleResetNorth}
+            >
+              <Compass color={mapBearing === 0 ? "#10B981" : "#EF4444"} size={14} />
+              <Text style={[styles.rotateBtnText, mapBearing === 0 && { color: "#10B981" }]}>
+                North 0°
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.rotateBtn}
+              onPress={() => handleRotateBy(45)}
+            >
+              <RotateCw color="#38BDF8" size={14} />
+              <Text style={styles.rotateBtnText}>+45° Right</Text>
+            </Pressable>
+
+            <Pressable
+              style={[styles.rotateBtn, mapPitch > 0 && styles.rotateBtnActive]}
+              onPress={handleTogglePitch}
+            >
+              <Text style={[styles.rotateBtnText, mapPitch > 0 && { color: "#38BDF8" }]}>
+                {mapPitch > 0 ? "2D Flat" : "3D Tilt (55°)"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {/* 5. Layer Switcher Menu */}
       {showLayerMenu && (
         <View style={styles.layerPickerCard}>
           <View style={styles.layerPickerHeader}>
@@ -835,6 +1197,86 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     elevation: 5,
+    position: "relative",
+  },
+  fabActive: {
+    borderColor: "#38BDF8",
+    backgroundColor: "rgba(14, 165, 233, 0.15)",
+  },
+  bearingBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 6,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+  },
+  bearingBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 7,
+    fontWeight: "900",
+  },
+  rotateHudCard: {
+    position: "absolute",
+    bottom: 64,
+    right: 14,
+    backgroundColor: "#0F172A",
+    borderRadius: 18,
+    padding: 12,
+    width: 230,
+    borderWidth: 1,
+    borderColor: "rgba(56, 189, 248, 0.4)",
+    zIndex: 35,
+    shadowColor: "#000",
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+    gap: 8,
+  },
+  rotateHudHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  rotateHudTitle: {
+    color: "#F8FAFC",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  rotateHintText: {
+    color: "#94A3B8",
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  rotateButtonsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  rotateBtn: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: "#1E293B",
+    paddingVertical: 7,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  rotateBtnActive: {
+    backgroundColor: "rgba(56, 189, 248, 0.2)",
+    borderColor: "#38BDF8",
+  },
+  rotateBtnText: {
+    color: "#94A3B8",
+    fontSize: 10,
+    fontWeight: "700",
   },
   layerPickerCard: {
     position: "absolute",
