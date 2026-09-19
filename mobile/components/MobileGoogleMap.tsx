@@ -41,6 +41,7 @@ import {
   ChevronRight,
   RotateCcw,
   RotateCw,
+  Hand,
 } from "lucide-react-native";
 
 export interface MobileMapCenter {
@@ -92,6 +93,7 @@ interface MobileGoogleMapProps {
   liveRiverLevel: number;
   onSelectCenter: (center: MobileMapCenter) => void;
   onRequestSos?: () => void;
+  onTouchMap?: (active: boolean) => void;
 }
 
 // Generate self-contained HTML for MapLibre GL with Google Maps tiles & full touch rotation controls
@@ -115,7 +117,15 @@ function generateMapHtml(
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body, #map { width: 100%; height: 100%; background: #070F1E; overflow: hidden; }
+    html, body, #map {
+      width: 100%;
+      height: 100%;
+      background: #070F1E;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
     .maplibregl-ctrl-attrib, .maplibregl-ctrl-logo { display: none !important; }
     
     .maplibregl-ctrl-top-right {
@@ -243,9 +253,20 @@ function generateMapHtml(
       zoom: 14,
       bearing: 0,
       pitch: 0,
-      touchZoomRotate: true,
+      fadeDuration: 0,
+      trackResize: true,
+      dragPan: {
+        linearity: 0.25,
+        maxSpeed: 1600,
+        deceleration: 2400
+      },
+      dragRotate: {
+        linearity: 0.25,
+        maxSpeed: 1600,
+        deceleration: 2400
+      },
       touchPitch: true,
-      dragRotate: true,
+      touchZoomRotate: true,
       pitchWithRotate: true,
       maxPitch: 65,
       attributionControl: false
@@ -535,9 +556,31 @@ function generateMapHtml(
           map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 1000 });
         } else if (data.type === 'FILTER_CENTERS') {
           renderCenters(data.centers);
+        } else if (data.type === 'SET_GESTURE_MODE') {
+          if (map && map.setCooperativeGestures) {
+            map.setCooperativeGestures(data.cooperative);
+          }
         }
       } catch(e) {}
     };
+
+    window.addEventListener('touchstart', function() {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_TOUCH_START' }));
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', function() {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_TOUCH_END' }));
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchcancel', function() {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_TOUCH_END' }));
+      }
+    }, { passive: true });
 
     document.addEventListener('message', function(e) { window.handleNativeMessage(e.data); });
     window.addEventListener('message', function(e) { window.handleNativeMessage(e.data); });
@@ -554,6 +597,7 @@ export default function MobileGoogleMap({
   liveRiverLevel,
   onSelectCenter,
   onRequestSos,
+  onTouchMap,
 }: MobileGoogleMapProps) {
   const webViewRef = useRef<WebView>(null);
 
@@ -564,9 +608,16 @@ export default function MobileGoogleMap({
   const [showLayerMenu, setShowLayerMenu] = useState(false);
   const [showRotateMenu, setShowRotateMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [panMapMode, setPanMapMode] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapBearing, setMapBearing] = useState(0);
   const [mapPitch, setMapPitch] = useState(0);
+
+  // Sync gesture mode with map
+  useEffect(() => {
+    const cooperative = isFullscreen ? false : !panMapMode;
+    postToWeb({ type: "SET_GESTURE_MODE", cooperative });
+  }, [panMapMode, isFullscreen]);
 
   // Selected place / active navigation route
   const [selectedCenter, setSelectedCenter] = useState<MobileMapCenter | null>(null);
@@ -698,7 +749,11 @@ export default function MobileGoogleMap({
   const handleMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === "SELECT_CENTER") {
+      if (data.type === "MAP_TOUCH_START") {
+        onTouchMap?.(true);
+      } else if (data.type === "MAP_TOUCH_END") {
+        onTouchMap?.(false);
+      } else if (data.type === "SELECT_CENTER") {
         const found = centers.find((c) => c.id === data.centerId);
         if (found) {
           setSelectedCenter(found);
@@ -711,7 +766,12 @@ export default function MobileGoogleMap({
   };
 
   return (
-    <View style={[styles.container, isFullscreen && styles.fullscreenContainer]}>
+    <View
+      style={[styles.container, isFullscreen && styles.fullscreenContainer]}
+      onTouchStart={() => onTouchMap?.(true)}
+      onTouchEnd={() => onTouchMap?.(false)}
+      onTouchCancel={() => onTouchMap?.(false)}
+    >
       {/* 1. Google Maps WebView Engine */}
       <WebView
         ref={webViewRef}
@@ -723,6 +783,11 @@ export default function MobileGoogleMap({
         javaScriptEnabled={true}
         domStorageEnabled={true}
         scrollEnabled={false}
+        androidLayerType="hardware"
+        bounces={false}
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       />
 
       {/* 2. Top Google Search Card & Filter Chips */}
@@ -816,6 +881,19 @@ export default function MobileGoogleMap({
           onPress={() => setIsFullscreen(!isFullscreen)}
         >
           {isFullscreen ? <Minimize2 color="#38BDF8" size={18} /> : <Maximize2 color="#38BDF8" size={18} />}
+        </Pressable>
+
+        {/* 1-Finger Pan Map Mode vs Feed Scroll Mode Toggle */}
+        <Pressable
+          style={[styles.fab, panMapMode && styles.fabPanActive]}
+          onPress={() => setPanMapMode(!panMapMode)}
+        >
+          <Hand color={panMapMode ? "#10B981" : "#38BDF8"} size={18} />
+          {panMapMode && (
+            <View style={styles.panBadge}>
+              <Text style={styles.panBadgeText}>PAN</Text>
+            </View>
+          )}
         </Pressable>
 
         {/* Layers Picker */}
@@ -1202,6 +1280,26 @@ const styles = StyleSheet.create({
   fabActive: {
     borderColor: "#38BDF8",
     backgroundColor: "rgba(14, 165, 233, 0.15)",
+  },
+  fabPanActive: {
+    borderColor: "#10B981",
+    backgroundColor: "rgba(16, 185, 129, 0.2)",
+  },
+  panBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#10B981",
+    borderRadius: 6,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
+  },
+  panBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 7,
+    fontWeight: "900",
   },
   bearingBadge: {
     position: "absolute",

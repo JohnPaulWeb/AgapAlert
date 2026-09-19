@@ -343,6 +343,7 @@ export default function App() {
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
+  const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
   // Go Bag Checklist Items
   const [checklist, setChecklist] = useState([
@@ -504,7 +505,14 @@ export default function App() {
       </View>
 
       {/* 3. Main Scrollable View */}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+        overScrollMode="never"
+        scrollEnabled={isScrollEnabled}
+      >
         {/* Sector Selector & Simulation Trigger */}
         <View style={styles.sectorBar}>
           <Pressable
@@ -603,6 +611,7 @@ export default function App() {
                 liveRiverLevel={liveRiverLevel}
                 onSelectCenter={(c) => setSelectedCenter(c as any)}
                 onRequestSos={() => setShowSosModal(true)}
+                onTouchMap={(active) => setIsScrollEnabled(!active)}
               />
             </View>
 
@@ -790,26 +799,40 @@ export default function App() {
       {/* 6. Floating Bottom Navigation */}
       <View style={styles.bottomNav}>
         <NavBtn
-          icon={<Radio size={20} color={screen === "radar" ? C.cyan : C.textMuted} />}
+          icon={<Radio size={19} color={screen === "radar" ? C.cyan : C.textMuted} />}
           label="Live Radar"
           active={screen === "radar"}
           onPress={() => setScreen("radar")}
         />
         <NavBtn
-          icon={<Home size={20} color={screen === "centers" ? C.cyan : C.textMuted} />}
+          icon={<Home size={19} color={screen === "centers" ? C.cyan : C.textMuted} />}
           label="Evac Centers"
           active={screen === "centers"}
           onPress={() => setScreen("centers")}
         />
+
+        {/* Center Emergency SOS Button (Right of Evac Centers) */}
+        <Pressable
+          style={styles.centerSosBtn}
+          onPress={() => setShowSosModal(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Emergency SOS Trigger"
+        >
+          <View style={styles.centerSosIconCircle}>
+            <Siren color={C.white} size={22} />
+          </View>
+          <Text style={styles.centerSosLabel}>SOS</Text>
+        </Pressable>
+
         <NavBtn
-          icon={<Layers size={20} color={screen === "reports" ? C.cyan : C.textMuted} />}
+          icon={<Layers size={19} color={screen === "reports" ? C.cyan : C.textMuted} />}
           label={official ? "Queue" : "Reports"}
           active={screen === "reports"}
           badge={reports.filter((r) => r.status === "NEW").length}
           onPress={() => setScreen("reports")}
         />
         <NavBtn
-          icon={<Phone size={20} color={screen === "settings" ? C.cyan : C.textMuted} />}
+          icon={<Phone size={19} color={screen === "settings" ? C.cyan : C.textMuted} />}
           label="Hotlines"
           active={screen === "settings"}
           onPress={() => setScreen("settings")}
@@ -1246,10 +1269,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 99,
+    borderWidth: 0.5,
+    borderColor: "rgba(239, 68, 68, 0.2)",
   },
   pulseDot: {
     width: 6,
@@ -1272,10 +1297,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 99,
+    borderWidth: 0.5,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   checklistBtnText: {
     color: C.white,
@@ -1287,10 +1314,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 13,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 1,
   },
   brandRow: {
     flexDirection: "row",
@@ -1298,12 +1330,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 11,
     backgroundColor: C.cyan,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   brandIconText: {
     color: C.bgPrimary,
@@ -1314,7 +1351,7 @@ const styles = StyleSheet.create({
     color: C.white,
     fontWeight: "900",
     fontSize: 16,
-    letterSpacing: 1.2,
+    letterSpacing: 1.3,
   },
   brandSub: {
     color: C.textMuted,
@@ -1328,9 +1365,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: C.greenPale,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 99,
+    borderWidth: 0.5,
+    borderColor: "rgba(16, 185, 129, 0.3)",
   },
   liveDot: {
     width: 5,
@@ -1348,11 +1387,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     backgroundColor: C.cyanGlow,
-    borderWidth: 1,
-    borderColor: "rgba(6, 182, 212, 0.3)",
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 11,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 1,
   },
   roleSwitchBtnOfficial: {
     backgroundColor: "rgba(30, 58, 138, 0.5)",
@@ -1368,9 +1412,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: C.red,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 11,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   quickSosText: {
     color: C.white,
@@ -1379,7 +1428,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 16,
-    paddingBottom: 110,
+    paddingBottom: 120,
   },
   sectorBar: {
     backgroundColor: C.bgSurface,
@@ -1391,6 +1440,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 1,
   },
   sectorPicker: {
     flex: 1,
@@ -1406,20 +1460,26 @@ const styles = StyleSheet.create({
   },
   sectorName: {
     color: C.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 1,
+    fontSize: 15,
+    fontWeight: "900",
+    marginTop: 2,
+    letterSpacing: 0.2,
   },
   simSpikeBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     backgroundColor: C.amberPale,
-    borderWidth: 1,
-    borderColor: "rgba(245, 158, 11, 0.3)",
-    paddingHorizontal: 9,
+    borderWidth: 1.5,
+    borderColor: "rgba(245, 158, 11, 0.4)",
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 11,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 1,
   },
   simSpikeText: {
     color: C.amber,
@@ -1436,7 +1496,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 16,
-    padding: 13,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardHead: {
     flexDirection: "row",
@@ -1464,9 +1529,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metricNumber: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: "900",
     color: C.textPrimary,
+    letterSpacing: 0.5,
   },
   metricUnit: {
     fontSize: 12,
@@ -1474,11 +1540,13 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   gaugeTrack: {
-    height: 5,
+    height: 6,
     backgroundColor: C.border,
     borderRadius: 99,
     overflow: "hidden",
-    marginVertical: 6,
+    marginVertical: 8,
+    borderWidth: 0.5,
+    borderColor: "rgba(30, 41, 59, 0.8)",
   },
   gaugeFill: {
     height: "100%",
@@ -1517,8 +1585,9 @@ const styles = StyleSheet.create({
   },
   radarTitle: {
     color: C.textPrimary,
-    fontWeight: "800",
-    fontSize: 13,
+    fontWeight: "900",
+    fontSize: 14,
+    letterSpacing: 0.3,
   },
   syncText: {
     color: C.textMuted,
@@ -1592,6 +1661,11 @@ const styles = StyleSheet.create({
     borderColor: C.redBorder,
     borderRadius: 18,
     padding: 14,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   warningTag: {
     color: C.red,
@@ -1601,15 +1675,16 @@ const styles = StyleSheet.create({
   },
   warningHeading: {
     color: C.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "900",
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 0.3,
   },
   warningBody: {
     color: "#CBD5E1",
-    fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 12,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 13,
   },
   actionBtnRow: {
     flexDirection: "row",
@@ -1618,12 +1693,17 @@ const styles = StyleSheet.create({
   primaryActionBtn: {
     flex: 1.2,
     backgroundColor: C.cyan,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   primaryActionText: {
     color: C.bgPrimary,
@@ -1633,12 +1713,17 @@ const styles = StyleSheet.create({
   sosActionBtn: {
     flex: 1,
     backgroundColor: C.red,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   sosActionText: {
     color: C.white,
@@ -1650,12 +1735,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 2,
+    marginBottom: 14,
   },
   sectionTitle: {
     color: C.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "900",
+    letterSpacing: 0.3,
   },
   sectionMeta: {
     color: C.cyan,
@@ -1668,6 +1754,11 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 2,
   },
   centerCardHead: {
     flexDirection: "row",
@@ -1676,11 +1767,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statusPill: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: "900",
-    paddingHorizontal: 6,
-    paddingVertical: 2.5,
-    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    overflow: "hidden",
   },
   distTag: {
     color: C.textMuted,
@@ -1690,18 +1783,20 @@ const styles = StyleSheet.create({
   centerCardTitle: {
     color: C.textPrimary,
     fontSize: 15,
-    fontWeight: "800",
-    marginBottom: 2,
+    fontWeight: "900",
+    marginBottom: 3,
+    letterSpacing: 0.2,
   },
   centerCardLoc: {
     color: C.textSecondary,
-    fontSize: 11.5,
-    marginBottom: 10,
+    fontSize: 12,
+    marginBottom: 11,
+    lineHeight: 16,
   },
   capRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   capLabel: {
     color: C.textMuted,
@@ -1713,11 +1808,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   capTrack: {
-    height: 5,
+    height: 6,
     backgroundColor: C.border,
     borderRadius: 99,
     overflow: "hidden",
-    marginBottom: 10,
+    marginBottom: 11,
+    borderWidth: 0.5,
+    borderColor: "rgba(30, 41, 59, 0.8)",
   },
   capFill: {
     height: "100%",
@@ -1729,7 +1826,8 @@ const styles = StyleSheet.create({
     gap: 6,
     borderTopWidth: 1,
     borderTopColor: C.border,
-    paddingTop: 8,
+    paddingTop: 10,
+    marginTop: 2,
   },
   suppliesText: {
     color: C.textMuted,
@@ -1742,9 +1840,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: C.cyan,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 10,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   newReportBtnText: {
     color: C.bgPrimary,
@@ -1757,6 +1860,11 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 2,
   },
   reportCardHead: {
     flexDirection: "row",
@@ -1770,14 +1878,16 @@ const styles = StyleSheet.create({
   },
   reportTitle: {
     color: C.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    marginBottom: 2,
+    fontSize: 15,
+    fontWeight: "900",
+    marginBottom: 3,
+    letterSpacing: 0.2,
   },
   reportLoc: {
     color: C.textSecondary,
-    fontSize: 11.5,
-    marginBottom: 4,
+    fontSize: 12,
+    marginBottom: 6,
+    lineHeight: 16,
   },
   reportDetails: {
     color: C.textSecondary,
@@ -1788,16 +1898,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
     borderTopWidth: 1,
     borderTopColor: C.border,
-    paddingTop: 8,
+    paddingTop: 10,
   },
   ackBtn: {
     backgroundColor: C.amberPale,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(245, 158, 11, 0.3)",
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
   },
   ackBtnText: {
     color: C.amber,
@@ -1806,9 +1923,16 @@ const styles = StyleSheet.create({
   },
   dispatchBtn: {
     backgroundColor: C.cyanGlow,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
   },
   dispatchBtnText: {
     color: C.cyan,
@@ -1817,9 +1941,16 @@ const styles = StyleSheet.create({
   },
   resolveBtn: {
     backgroundColor: C.greenPale,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
   },
   resolveBtnText: {
     color: C.green,
@@ -1833,6 +1964,11 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 2,
   },
   hotlineRow: {
     flexDirection: "row",
@@ -1844,13 +1980,15 @@ const styles = StyleSheet.create({
   },
   hotlineNum: {
     color: C.cyan,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "900",
+    letterSpacing: 0.5,
   },
   hotlineName: {
     color: C.textPrimary,
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.2,
   },
   hotlineDesc: {
     color: C.textMuted,
@@ -1861,11 +1999,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     backgroundColor: C.bgCard,
-    borderWidth: 1,
-    borderColor: C.borderLight,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 9,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   callBtnText: {
     color: C.cyan,
@@ -1878,17 +2021,53 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 72,
+    height: 74,
     backgroundColor: "#060D1A",
     borderTopWidth: 1,
     borderTopColor: C.border,
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingTop: 8,
+    alignItems: "center",
+    paddingTop: 6,
+    paddingBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   navBtn: {
     alignItems: "center",
-    width: 70,
+    justifyContent: "center",
+    width: 62,
+  },
+  centerSosBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -22,
+    width: 64,
+  },
+  centerSosIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: C.red,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3.5,
+    borderColor: "#060D1A",
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  centerSosLabel: {
+    color: "#F87171",
+    fontSize: 9.5,
+    fontWeight: "900",
+    marginTop: 2,
+    letterSpacing: 0.5,
   },
   navIconBox: {
     padding: 4,
@@ -1918,8 +2097,9 @@ const styles = StyleSheet.create({
   navLabel: {
     color: C.textMuted,
     fontSize: 9.5,
-    fontWeight: "700",
+    fontWeight: "800",
     marginTop: 3,
+    letterSpacing: 0.3,
   },
   // Modals
   modalBackdrop: {
@@ -1934,6 +2114,11 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: C.borderLight,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 5,
   },
   modalHead: {
     flexDirection: "row",
@@ -1952,9 +2137,10 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: C.textPrimary,
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "900",
-    marginTop: 2,
+    marginTop: 3,
+    letterSpacing: 0.3,
   },
   modalSub: {
     color: C.textMuted,
@@ -1966,9 +2152,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: C.bgCard,
-    padding: 12,
+    padding: 13,
     borderRadius: 12,
     marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   capModalNum: {
     fontSize: 16,
@@ -1994,9 +2187,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     backgroundColor: C.bgCard,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.2)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
   },
   supplyPillText: {
     color: C.textSecondary,
@@ -2009,7 +2209,7 @@ const styles = StyleSheet.create({
   },
   outlineActionBtn: {
     flex: 1,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.borderLight,
     paddingVertical: 11,
     borderRadius: 12,
@@ -2017,6 +2217,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
+    backgroundColor: "rgba(6, 182, 212, 0.08)",
   },
   outlineActionText: {
     color: C.cyan,
@@ -2032,6 +2233,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 2,
   },
   primaryActionTextModal: {
     color: C.bgPrimary,
@@ -2041,25 +2247,31 @@ const styles = StyleSheet.create({
   // SOS Modal
   sosAlertBox: {
     backgroundColor: C.redPale,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.redBorder,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: 12,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   sosAlertTitle: {
     color: C.red,
     fontWeight: "900",
-    fontSize: 15,
-    marginTop: 6,
+    fontSize: 16,
+    marginTop: 7,
+    letterSpacing: 0.3,
   },
   sosAlertDesc: {
     color: "#FECACA",
-    fontSize: 11.5,
+    fontSize: 12,
     textAlign: "center",
-    lineHeight: 16,
-    marginTop: 4,
+    lineHeight: 17,
+    marginTop: 5,
   },
   confirmSosBtn: {
     backgroundColor: C.red,
@@ -2070,6 +2282,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     marginTop: 6,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
   confirmSosText: {
     color: C.white,
@@ -2078,15 +2295,20 @@ const styles = StyleSheet.create({
   },
   dial911Btn: {
     backgroundColor: C.bgCard,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.redBorder,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
     marginTop: 8,
+    shadowColor: "#EF4444",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 1,
   },
   dial911Text: {
     color: C.red,
@@ -2112,16 +2334,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    padding: 12,
-    borderWidth: 1,
+    padding: 13,
+    borderWidth: 1.5,
     borderColor: C.border,
     borderRadius: 12,
     marginBottom: 8,
+    backgroundColor: C.bgCard,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   sectorOptionTitle: {
     color: C.textPrimary,
-    fontWeight: "800",
+    fontWeight: "900",
     fontSize: 14,
+    letterSpacing: 0.2,
   },
   sectorOptionSub: {
     color: C.textMuted,
@@ -2133,19 +2362,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.border,
     borderRadius: 14,
     marginBottom: 10,
+    backgroundColor: C.bgCard,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   roleOptionActive: {
     borderColor: C.cyan,
     backgroundColor: C.cyanGlow,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   roleOptionTitle: {
     color: C.textPrimary,
-    fontWeight: "800",
-    fontSize: 14,
+    fontWeight: "900",
+    fontSize: 15,
+    letterSpacing: 0.2,
   },
   roleOptionSub: {
     color: C.textMuted,
@@ -2164,15 +2405,25 @@ const styles = StyleSheet.create({
   chipBtn: {
     flex: 1,
     backgroundColor: C.bgCard,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.border,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   chipBtnActive: {
     backgroundColor: C.cyan,
     borderColor: C.cyan,
+    shadowColor: "#06B6D4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   chipText: {
     color: C.textSecondary,
@@ -2181,12 +2432,17 @@ const styles = StyleSheet.create({
   },
   textInput: {
     backgroundColor: C.bgCard,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     color: C.textPrimary,
     fontSize: 12.5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });
