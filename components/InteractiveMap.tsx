@@ -124,8 +124,44 @@ const GOOGLE_TILE_LAYERS: Record<MapStyle, { name: string; url: string; subdomai
   },
 };
 
-// Flood hazard polygons around low-lying river areas in Metro Manila & Cagayan
+// Flood hazard polygons around low-lying river areas in Pangasinan, Metro Manila & Cagayan
 const HAZARD_ZONES: Record<string, { name: string; level: string; color: string; coords: [number, number][] }[]> = {
+  dalongue: [
+    {
+      name: "Sinocalan River Overflow & Dalongue Lowland Basin",
+      level: "Critical Flood Hazard",
+      color: "#ef4444",
+      coords: [
+        [16.0090, 120.3790],
+        [16.0065, 120.3920],
+        [15.9990, 120.3950],
+        [15.9970, 120.3840],
+        [16.0020, 120.3750],
+      ],
+    },
+    {
+      name: "Bued-Sinocalan Spillway Low Agricultural Basin",
+      level: "Moderate Risk Zone",
+      color: "#f59e0b",
+      coords: [
+        [16.0150, 120.3720],
+        [16.0120, 120.3880],
+        [16.0070, 120.3820],
+        [16.0090, 120.3690],
+      ],
+    },
+    {
+      name: "Tuliao - Dalongue Road Corridor Water Inflow",
+      level: "High Risk",
+      color: "#f97316",
+      coords: [
+        [16.0040, 120.3810],
+        [16.0010, 120.3890],
+        [15.9950, 120.3860],
+        [15.9980, 120.3780],
+      ],
+    },
+  ],
   marikina: [
     {
       name: "Tumana & Malanday Low-Lying Basin (High Flood Risk)",
@@ -217,6 +253,24 @@ const HAZARD_ZONES: Record<string, { name: string; level: string; color: string;
 
 // Safe High-Ground Routes
 const SAFE_ROUTES: Record<string, { name: string; coords: [number, number][] }[]> = {
+  dalongue: [
+    {
+      name: "Dalongue to Santa Barbara Poblacion High Spine",
+      coords: [
+        [16.0034, 120.3850],
+        [16.0010, 120.3920],
+        [15.9982, 120.4015],
+      ],
+    },
+    {
+      name: "Dalongue to Tuliao High Ground Route",
+      coords: [
+        [16.0034, 120.3850],
+        [16.0070, 120.3810],
+        [16.0120, 120.3780],
+      ],
+    },
+  ],
   marikina: [
     {
       name: "Sumulong Highway High Ridge Corridor",
@@ -304,7 +358,7 @@ export default function InteractiveMap({
         center: [selectedLocation.lat, selectedLocation.lng],
         zoom: selectedLocation.zoom || 14,
         zoomControl: false,
-        attributionControl: false,
+        attributionControl: true,
       });
 
       // Google-style Tile Layer
@@ -535,12 +589,12 @@ export default function InteractiveMap({
         });
 
         polygon.bindPopup(`
-          <div style="font-family: system-ui; padding: 6px; color: #1e293b;">
-            <span style="font-size: 10px; font-weight: 900; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px;">
+          <div style="font-family: inherit; min-width: 180px;">
+            <span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 8px; border-radius: 6px;">
               ${zone.level}
             </span>
-            <h5 style="font-size: 13px; font-weight: 800; margin: 6px 0 2px 0;">${zone.name}</h5>
-            <p style="font-size: 11px; color: #64748b; margin: 0;">High water inflow risk. Avoid low-ground roads.</p>
+            <h5 style="font-size: 13px; font-weight: 700; margin: 8px 0 2px 0; color: #f1f5f9;">${zone.name}</h5>
+            <p style="font-size: 11px; color: #94a3b8; margin: 0;">High water inflow risk. Avoid low-ground roads.</p>
           </div>
         `);
 
@@ -570,12 +624,12 @@ export default function InteractiveMap({
         });
 
         polyline.bindPopup(`
-          <div style="font-family: system-ui; padding: 6px; color: #1e293b;">
-            <span style="font-size: 10px; font-weight: 900; background: #d1fae5; color: #047857; padding: 2px 6px; border-radius: 4px;">
-              RECOMMENDED SAFE HIGH GROUND
+          <div style="font-family: inherit; min-width: 180px;">
+            <span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); padding: 2px 8px; border-radius: 6px;">
+              Safe high ground
             </span>
-            <h5 style="font-size: 13px; font-weight: 800; margin: 6px 0 2px 0;">${route.name}</h5>
-            <p style="font-size: 11px; color: #64748b; margin: 0;">Elevated roadway passable during severe rainfall.</p>
+            <h5 style="font-size: 13px; font-weight: 700; margin: 8px 0 2px 0; color: #f1f5f9;">${route.name}</h5>
+            <p style="font-size: 11px; color: #94a3b8; margin: 0;">Elevated roadway passable during severe rainfall.</p>
           </div>
         `);
 
@@ -628,17 +682,17 @@ export default function InteractiveMap({
         const marker = L.marker([rep.lat, rep.lng], { icon: repIcon });
 
         marker.bindPopup(`
-          <div style="font-family: system-ui; padding: 6px; min-width: 200px; color: #1e293b;">
+          <div style="font-family: inherit; min-width: 200px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
-              <span style="font-size: 9px; font-weight: 900; background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px;">
+              <span style="font-size: 9px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); padding: 2px 6px; border-radius: 4px;">
                 ${rep.status} · ${rep.priority}
               </span>
-              <span style="font-size: 10px; color: #64748b;">${rep.timestamp}</span>
+              <span style="font-size: 10px; color: #94a3b8;">${rep.timestamp}</span>
             </div>
-            <h5 style="font-size: 13px; font-weight: 800; margin: 4px 0 2px 0;">${rep.title}</h5>
-            <p style="font-size: 11px; color: #64748b; margin: 0 0 6px 0;">📍 ${rep.location}</p>
-            <p style="font-size: 11px; color: #334155; margin: 0;">${rep.details}</p>
-            ${rep.contact ? `<p style="font-size: 11px; color: #0284c7; font-weight: 700; margin: 6px 0 0 0;">📞 ${rep.contact}</p>` : ""}
+            <h5 style="font-size: 13px; font-weight: 700; margin: 6px 0 2px 0; color: #f1f5f9;">${rep.title}</h5>
+            <p style="font-size: 11px; color: #94a3b8; margin: 0 0 6px 0;">${rep.location}</p>
+            <p style="font-size: 11px; color: #cbd5e1; margin: 0; line-height: 1.45;">${rep.details}</p>
+            ${rep.contact ? `<p style="font-size: 11px; color: #7dd3fc; font-weight: 600; margin: 6px 0 0 0;">Call ${rep.contact}</p>` : ""}
           </div>
         `);
 
@@ -702,7 +756,7 @@ export default function InteractiveMap({
   };
 
   return (
-    <div className={`relative bg-slate-900 border border-slate-700/60 rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 font-sans ${
+    <div className={`relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl transition-all duration-300 font-sans ${
       isFullscreen ? "fixed inset-0 z-50 rounded-none h-screen w-screen" : "w-full h-[600px] sm:h-[660px]"
     }`}>
       {/* 1. Google Maps Floating Search Bar & Filter Chips (Top Left) */}
@@ -1026,8 +1080,8 @@ export default function InteractiveMap({
       {/* Loading Overlay */}
       {!mapLoaded && (
         <div className="absolute inset-0 z-20 bg-slate-900 flex flex-col items-center justify-center gap-3 text-slate-400">
-          <div className="w-8 h-8 rounded-full border-2 border-blue-500 border-t-transparent animate-spin"></div>
-          <span className="text-xs font-bold tracking-wider">Loading Google Maps Telemetry...</span>
+          <div className="h-8 w-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></div>
+          <span className="text-xs font-medium tracking-wide">Loading live map…</span>
         </div>
       )}
     </div>

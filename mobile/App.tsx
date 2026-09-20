@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   AlertTriangle,
   Bell,
+  Check,
   CheckCircle2,
   ChevronRight,
   Compass,
@@ -13,6 +14,10 @@ import {
   Home,
   Info,
   Layers,
+  LifeBuoy,
+  Lock,
+  LogOut,
+  Mail,
   MapPin,
   Navigation,
   Package,
@@ -26,6 +31,7 @@ import {
   ShieldCheck,
   Siren,
   Sliders,
+  UserCheck,
   Users,
   Volume2,
   VolumeX,
@@ -45,6 +51,7 @@ import {
   TextInput,
   View,
   Linking,
+  ActivityIndicator,
 } from "react-native";
 import {
   setupNotificationHandler,
@@ -57,7 +64,7 @@ import MobileGoogleMap, {
   MobileMapLocationPreset,
 } from "./components/MobileGoogleMap";
 
-// Unified Dark Disaster Palette matching Desktop
+// Unified Dark Disaster Palette matching Web Command Center
 const C = {
   bgPrimary: "#070F1E",
   bgSurface: "#0D1829",
@@ -81,10 +88,19 @@ const C = {
   white: "#FFFFFF",
 };
 
-type Role = "resident" | "official";
-type Screen = "radar" | "centers" | "reports" | "settings";
+export type Role = "resident" | "official";
+export type Screen = "radar" | "centers" | "reports" | "settings";
 
-interface LocationPreset {
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: Role;
+  barangay: string;
+  phone?: string;
+}
+
+export interface LocationPreset {
   id: string;
   name: string;
   region: string;
@@ -98,7 +114,34 @@ interface LocationPreset {
   lng: number;
 }
 
-const LOCATIONS: LocationPreset[] = [
+// Focused default location: Dalongue, Santa Barbara, Pangasinan (Sinocalan River)
+export const LOCATIONS: LocationPreset[] = [
+  {
+    id: "dalongue",
+    name: "Dalongue, Santa Barbara",
+    region: "Pangasinan",
+    riverName: "Sinocalan River",
+    riverLevel: 5.82,
+    stormSignal: 2,
+    windSpeed: 65,
+    rainRate: 35,
+    status: "Warning",
+    lat: 16.0034,
+    lng: 120.3850,
+  },
+  {
+    id: "poblacion_sb",
+    name: "Poblacion Sur, Santa Barbara",
+    region: "Pangasinan",
+    riverName: "Sinocalan River",
+    riverLevel: 5.82,
+    stormSignal: 2,
+    windSpeed: 65,
+    rainRate: 35,
+    status: "Warning",
+    lat: 15.9985,
+    lng: 120.4010,
+  },
   {
     id: "marikina",
     name: "Marikina City",
@@ -111,19 +154,6 @@ const LOCATIONS: LocationPreset[] = [
     status: "Warning",
     lat: 14.6507,
     lng: 121.1029,
-  },
-  {
-    id: "qc",
-    name: "Quezon City",
-    region: "Northern Metro Manila",
-    riverName: "Tullahan River",
-    riverLevel: 14.8,
-    stormSignal: 2,
-    windSpeed: 62,
-    rainRate: 15,
-    status: "Watch",
-    lat: 14.6760,
-    lng: 121.0437,
   },
   {
     id: "pasig",
@@ -153,7 +183,7 @@ const LOCATIONS: LocationPreset[] = [
   },
 ];
 
-interface EvacCenter {
+export interface EvacCenter {
   id: string;
   name: string;
   barangay: string;
@@ -170,9 +200,73 @@ interface EvacCenter {
   lng: number;
 }
 
-const INITIAL_CENTERS: EvacCenter[] = [
+export const INITIAL_CENTERS: EvacCenter[] = [
   {
-    id: "c1",
+    id: "c-dalongue",
+    name: "Dalongue Barangay Hall & Covered Court",
+    barangay: "Dalongue",
+    city: "Santa Barbara, Pangasinan",
+    distance: "0.3 km",
+    status: "Open",
+    occupancy: 45,
+    capacity: 180,
+    supplies: ["Clean Water", "Ready-to-Eat Rice", "Hygiene Packs", "First Aid Station"],
+    features: ["Medical Aid", "High Ground", "Generator Power"],
+    contact: "(075) 518-2024",
+    elevation: "18m High Ground",
+    lat: 16.0045,
+    lng: 120.3862,
+  },
+  {
+    id: "c-sb-gym",
+    name: "Santa Barbara Central Elementary Gym",
+    barangay: "Poblacion Norte",
+    city: "Santa Barbara, Pangasinan",
+    distance: "1.2 km",
+    status: "Open",
+    occupancy: 120,
+    capacity: 350,
+    supplies: ["Potable Water", "Hot Meals", "Thermal Blankets", "Infant Care"],
+    features: ["Medical Aid", "Pet Friendly", "Solar Power Backup"],
+    contact: "0917-555-4321",
+    elevation: "22m High Ground",
+    lat: 16.0012,
+    lng: 120.4021,
+  },
+  {
+    id: "c-poblacion-sur",
+    name: "Poblacion Sur Multi-Purpose Evac Center",
+    barangay: "Poblacion Sur",
+    city: "Santa Barbara, Pangasinan",
+    distance: "1.8 km",
+    status: "Open",
+    occupancy: 80,
+    capacity: 200,
+    supplies: ["Emergency Rations", "Drinking Water Purifiers", "Sleeping Mats"],
+    features: ["Medical Aid", "High Elevation"],
+    contact: "(075) 522-1144",
+    elevation: "20m Elevation",
+    lat: 15.9985,
+    lng: 120.4010,
+  },
+  {
+    id: "c-tuliao",
+    name: "Tuliao Barangay Evacuation Center",
+    barangay: "Tuliao",
+    city: "Santa Barbara, Pangasinan",
+    distance: "2.5 km",
+    status: "Open",
+    occupancy: 35,
+    capacity: 150,
+    supplies: ["Canned Goods", "Water Packs", "Flashlights"],
+    features: ["Pet Friendly", "Safe Route"],
+    contact: "0928-333-9900",
+    elevation: "19m Elevation",
+    lat: 16.0120,
+    lng: 120.3710,
+  },
+  {
+    id: "c-marikina-1",
     name: "Marikina Sports Center Complex",
     barangay: "Sto. Niño",
     city: "Marikina City",
@@ -180,80 +274,16 @@ const INITIAL_CENTERS: EvacCenter[] = [
     status: "Open",
     occupancy: 54,
     capacity: 220,
-    supplies: ["Clean Water", "Ready-to-Eat Rice", "Hygiene Packs", "Infant Milk"],
-    features: ["Medical Aid", "Pet Friendly", "High Ground", "Generator Power"],
+    supplies: ["Clean Water", "Ready-to-Eat Rice", "Hygiene Packs"],
+    features: ["Medical Aid", "Pet Friendly", "Generator Power"],
     contact: "(02) 8646-1633",
     elevation: "24m High Elevation",
     lat: 14.6343,
     lng: 121.0991,
   },
-  {
-    id: "c2",
-    name: "Concepcion Elementary School",
-    barangay: "Concepcion Uno",
-    city: "Marikina City",
-    distance: "1.4 km",
-    status: "Open",
-    occupancy: 132,
-    capacity: 200,
-    supplies: ["Drinking Water", "Thermal Blankets", "First Aid Station"],
-    features: ["Medical Aid", "High Ground"],
-    contact: "(02) 8941-2290",
-    elevation: "21m Elevation",
-    lat: 14.6528,
-    lng: 121.1052,
-  },
-  {
-    id: "c3",
-    name: "San Roque Multipurpose Evac Center",
-    barangay: "San Roque",
-    city: "Marikina City",
-    distance: "2.1 km",
-    status: "Open",
-    occupancy: 78,
-    capacity: 140,
-    supplies: ["Hot Meals", "Canned Goods", "Flashlights"],
-    features: ["Pet Friendly", "High Ground"],
-    contact: "(02) 8646-0812",
-    elevation: "22m Elevation",
-    lat: 14.6291,
-    lng: 121.1005,
-  },
-  {
-    id: "c4",
-    name: "Claro M. Recto High School",
-    barangay: "Loyola Heights",
-    city: "Quezon City",
-    distance: "3.2 km",
-    status: "Open",
-    occupancy: 160,
-    capacity: 280,
-    supplies: ["Water Purifiers", "Family Food Packs", "Sleeping Mats"],
-    features: ["Medical Aid", "High Ground", "Solar Power"],
-    contact: "(02) 8928-1144",
-    elevation: "32m High Ground",
-    lat: 14.6468,
-    lng: 121.0776,
-  },
-  {
-    id: "c5",
-    name: "West Triangle Evacuation Gym",
-    barangay: "West Triangle",
-    city: "Quezon City",
-    distance: "4.0 km",
-    status: "Full",
-    occupancy: 180,
-    capacity: 180,
-    supplies: ["Supply Replenishment Dispatched"],
-    features: ["Pet Friendly"],
-    contact: "(02) 8373-5521",
-    elevation: "18m Elevation",
-    lat: 14.6496,
-    lng: 121.0367,
-  },
 ];
 
-interface IncidentReport {
+export interface IncidentReport {
   id: string;
   category: "flood" | "relief" | "medical" | "debris" | "sos";
   title: string;
@@ -263,69 +293,67 @@ interface IncidentReport {
   priority: "CRITICAL" | "HIGH" | "MEDIUM";
   details: string;
   contact?: string;
+  waterDepth?: string;
+  strandedCount?: number;
+  assignedUnit?: string;
+  declineReason?: string;
   lat?: number;
   lng?: number;
 }
 
-const INITIAL_REPORTS: IncidentReport[] = [
+export const INITIAL_REPORTS: IncidentReport[] = [
   {
-    id: "rep-1",
-    category: "flood",
-    title: "Waist-deep rapid flood near Katipunan St.",
-    location: "Concepcion Uno, Marikina",
-    timestamp: "4 min ago",
+    id: "rep-sos-1",
+    category: "sos",
+    title: "CRITICAL SOS: 5 Stranded on Roof Deck near Sinocalan Dike",
+    location: "Barangay Dalongue, Santa Barbara",
+    timestamp: "2 min ago",
     status: "NEW",
     priority: "CRITICAL",
-    details: "4 families stranded on 2nd floor, water rising 10cm every 15 mins. Rescue boat requested.",
-    contact: "0917-882-1920",
-    lat: 14.6515,
-    lng: 121.1070,
+    details: "Waist to chest level flood water rapidly rising. 2 seniors and 1 child need urgent rescue boat evacuation.",
+    waterDepth: "Waist to Chest (1.4m)",
+    strandedCount: 5,
+    contact: "0917-882-9011",
+    lat: 16.0022,
+    lng: 120.3842,
   },
   {
-    id: "rep-2",
-    category: "medical",
-    title: "Oxygen tank & senior patient transport",
-    location: "San Roque Riverside",
-    timestamp: "18 min ago",
+    id: "rep-sb-2",
+    category: "flood",
+    title: "Waist-deep rapid flood near Dalongue Elementary",
+    location: "Dalongue Main Road, Santa Barbara",
+    timestamp: "12 min ago",
     status: "ACKNOWLEDGED",
     priority: "HIGH",
-    details: "Elderly resident needs ambulance transport to high-ground hospital.",
-    contact: "0920-551-4432",
-    lat: 14.6280,
-    lng: 121.0965,
+    details: "Road is unpassable to light vehicles. Residents evacuating towards Dalongue Barangay Hall.",
+    waterDepth: "Waist (1.1m)",
+    contact: "0920-551-7788",
+    lat: 16.0038,
+    lng: 120.3855,
   },
   {
-    id: "rep-3",
-    category: "relief",
-    title: "Relief food & potable water shortage",
-    location: "Barangka Community Hall",
-    timestamp: "45 min ago",
+    id: "rep-sb-3",
+    category: "medical",
+    title: "Oxygen supply & senior citizen transport",
+    location: "Poblacion Sur, Santa Barbara",
+    timestamp: "28 min ago",
     status: "DISPATCHED",
-    priority: "MEDIUM",
-    details: "60 evacuees have arrived. Water tanker truck dispatched from city hall.",
-    lat: 14.6335,
-    lng: 121.0872,
-  },
-  {
-    id: "rep-4",
-    category: "debris",
-    title: "Fallen tree blocking Tumana Bridge exit",
-    location: "Tumana Bridge approach",
-    timestamp: "1 hr ago",
-    status: "RESOLVED",
-    priority: "MEDIUM",
-    details: "Barangay clearing crew removed debris. Road is now passable.",
-    lat: 14.6575,
-    lng: 121.1012,
+    priority: "HIGH",
+    details: "MDRRMO ambulance dispatched to transport senior with portable oxygen unit.",
+    assignedUnit: "Santa Barbara MDRRMO Ambulance #1",
+    contact: "0919-444-2211",
+    lat: 15.9990,
+    lng: 120.4015,
   },
 ];
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<Role>("resident");
   const [screen, setScreen] = useState<Screen>("radar");
   const [selectedLoc, setSelectedLoc] = useState<LocationPreset>(LOCATIONS[0]);
-  
-  // Real-time live disaster simulation state
+
+  // Real-time live disaster telemetry state
   const [liveRiverLevel, setLiveRiverLevel] = useState(LOCATIONS[0].riverLevel);
   const [liveRainRate, setLiveRainRate] = useState(LOCATIONS[0].rainRate);
   const [liveWindSpeed, setLiveWindSpeed] = useState(LOCATIONS[0].windSpeed);
@@ -336,9 +364,11 @@ export default function App() {
   const [centers, setCenters] = useState<EvacCenter[]>(INITIAL_CENTERS);
   const [reports, setReports] = useState<IncidentReport[]>(INITIAL_REPORTS);
 
-  // Modals & Drawers
+  // Modals
   const [selectedCenter, setSelectedCenter] = useState<EvacCenter | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSosModal, setShowSosModal] = useState(false);
+  const [showResponderSosModal, setShowResponderSosModal] = useState<IncidentReport | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showChecklistModal, setShowChecklistModal] = useState(false);
   const [showSectorModal, setShowSectorModal] = useState(false);
@@ -362,7 +392,7 @@ export default function App() {
   // Telemetry heartbeat timer
   useEffect(() => {
     const interval = setInterval(() => {
-      const delta = (Math.random() - 0.48) * 0.04;
+      const delta = (Math.random() - 0.48) * 0.02;
       setLiveRiverLevel((prev) => Math.round((prev + delta) * 100) / 100);
       setLastSyncTime(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
     }, 4500);
@@ -372,11 +402,22 @@ export default function App() {
   async function initialize() {
     setupNotificationHandler();
     try {
+      const savedUserStr = await AsyncStorage.getItem("@agap_user_session");
+      if (savedUserStr) {
+        const parsed = JSON.parse(savedUserStr);
+        setCurrentUser(parsed);
+        setRole(parsed.role || "resident");
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
       const p = await Location.requestForegroundPermissionsAsync();
       if (p.status === "granted") {
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
         const address = await Location.reverseGeocodeAsync(pos.coords);
-        const city = address[0]?.city || address[0]?.district;
+        const city = address[0]?.city || address[0]?.subregion || address[0]?.district;
         if (city) {
           await AsyncStorage.setItem("agapalert_city", city);
         }
@@ -387,19 +428,34 @@ export default function App() {
     await requestNotificationPermissions();
   }
 
-  // Flood Alarm Level calculation based on river telemetry
+  const handleSaveUser = async (user: UserProfile | null) => {
+    setCurrentUser(user);
+    if (user) {
+      setRole(user.role);
+      await AsyncStorage.setItem("@agap_user_session", JSON.stringify(user));
+    } else {
+      await AsyncStorage.removeItem("@agap_user_session");
+    }
+  };
+
+  // Flood Alarm Level calculation based on river telemetry (Sinocalan warning threshold ~5.8m)
   const alarmInfo = useMemo(() => {
-    if (liveRiverLevel >= 18.0) {
+    if (liveRiverLevel >= 6.5) {
       return { level: 3, title: "ALARM 3: FORCED EVACUATION", color: C.red, bg: C.redPale };
     }
-    if (liveRiverLevel >= 16.0) {
+    if (liveRiverLevel >= 5.8) {
       return { level: 2, title: "ALARM 2: PREPARATORY EVACUATION", color: C.amber, bg: C.amberPale };
     }
-    if (liveRiverLevel >= 15.0) {
+    if (liveRiverLevel >= 5.0) {
       return { level: 1, title: "ALARM 1: WARNING MONITORING", color: "#FACC15", bg: "rgba(250, 204, 21, 0.15)" };
     }
     return { level: 0, title: "NORMAL WATER LEVEL", color: C.green, bg: C.greenPale };
   }, [liveRiverLevel]);
+
+  // Active Critical SOS items
+  const activeSosReport = useMemo(() => {
+    return reports.find((r) => r.category === "sos" && (r.status === "NEW" || r.status === "ACKNOWLEDGED"));
+  }, [reports]);
 
   // Simulate water level spike
   const triggerSimulationSpike = () => {
@@ -407,8 +463,8 @@ export default function App() {
     let step = 0;
     const interval = setInterval(() => {
       step++;
-      setLiveRiverLevel((prev) => Math.round((prev + 0.15) * 100) / 100);
-      setLiveRainRate((prev) => prev + 4);
+      setLiveRiverLevel((prev) => Math.round((prev + 0.18) * 100) / 100);
+      setLiveRainRate((prev) => prev + 5);
       if (step >= 5) {
         clearInterval(interval);
         setIsSimulatingSpike(false);
@@ -417,8 +473,8 @@ export default function App() {
   };
 
   const handleCreateReport = (newRep: Omit<IncidentReport, "id" | "timestamp" | "status">) => {
-    const latOffset = (Math.random() - 0.5) * 0.015;
-    const lngOffset = (Math.random() - 0.5) * 0.015;
+    const latOffset = (Math.random() - 0.5) * 0.006;
+    const lngOffset = (Math.random() - 0.5) * 0.006;
     const item: IncidentReport = {
       ...newRep,
       id: `rep-${Date.now()}`,
@@ -429,7 +485,50 @@ export default function App() {
     };
     setReports([item, ...reports]);
     setShowReportModal(false);
-    Alert.alert("Report Transmitted", "Your incident report has been queued and plotted on the Live Google Map.");
+    setShowSosModal(false);
+    Alert.alert(
+      "Rescue Signal Transmitted",
+      `Your report "${item.title}" has been broadcast to Barangay Quick Response Command.`
+    );
+  };
+
+  const handleAcceptRescue = (reportId: string) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "DISPATCHED",
+              assignedUnit: "Santa Barbara MDRRMO Rescue Boat #2",
+            }
+          : r
+      )
+    );
+    setShowResponderSosModal(null);
+    Alert.alert(
+      "Rescue Mission Dispatched",
+      "Assigned to Santa Barbara MDRRMO Rescue Boat #2. Victim has been alerted that help is en route."
+    );
+  };
+
+  const handleDeclineOrEscalate = (reportId: string, reason: string) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "ACKNOWLEDGED",
+              declineReason: reason,
+              details: `${r.details} [ESCALATED TO PANGASINAN PDRRMO: ${reason}]`,
+            }
+          : r
+      )
+    );
+    setShowResponderSosModal(null);
+    Alert.alert(
+      "Escalated to Provincial PDRRMO",
+      `Incident escalated to Pangasinan Provincial Operations Center. Reason: ${reason}`
+    );
   };
 
   const handleUpdateStatus = (id: string, newStatus: IncidentReport["status"]) => {
@@ -461,7 +560,7 @@ export default function App() {
         </Pressable>
       </View>
 
-      {/* 2. Top Command Header */}
+      {/* 2. Top Command Header with Brand & Auth/Role Badges */}
       <View style={styles.header}>
         <View style={styles.brandRow}>
           <View style={styles.brandIcon}>
@@ -484,6 +583,18 @@ export default function App() {
         </View>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {/* User Profile / Sign In Pill */}
+          <Pressable
+            style={styles.userBadgeBtn}
+            onPress={() => setShowAuthModal(true)}
+          >
+            <Users color={C.cyan} size={13} />
+            <Text style={styles.userBadgeText} numberOfLines={1}>
+              {currentUser ? currentUser.fullName.split(" ")[0] : "Sign In"}
+            </Text>
+          </Pressable>
+
+          {/* Role Switcher */}
           <Pressable
             style={[styles.roleSwitchBtn, official && styles.roleSwitchBtnOfficial]}
             onPress={() => setShowRoleModal(true)}
@@ -494,6 +605,7 @@ export default function App() {
             </Text>
           </Pressable>
 
+          {/* Quick SOS Header Button */}
           <Pressable
             style={styles.quickSosBtn}
             onPress={() => setShowSosModal(true)}
@@ -504,7 +616,34 @@ export default function App() {
         </View>
       </View>
 
-      {/* 3. Main Scrollable View */}
+      {/* 3. Top Active SOS Broadcast Banner */}
+      {activeSosReport && (
+        <Pressable
+          style={styles.sosBannerBar}
+          onPress={() => {
+            if (official) {
+              setShowResponderSosModal(activeSosReport);
+            } else {
+              setScreen("reports");
+            }
+          }}
+        >
+          <View style={styles.sosBannerIconBox}>
+            <Siren color={C.white} size={16} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sosBannerTitle}>🚨 ACTIVE SOS BEACON IN DALONGUE</Text>
+            <Text style={styles.sosBannerDesc} numberOfLines={1}>
+              {activeSosReport.title} ({activeSosReport.waterDepth || "Rising Flood"})
+            </Text>
+          </View>
+          <View style={styles.sosBannerAction}>
+            <Text style={styles.sosBannerActionText}>{official ? "RESPOND" : "VIEW"}</Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/* 4. Main Scrollable Content */}
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -513,7 +652,7 @@ export default function App() {
         overScrollMode="never"
         scrollEnabled={isScrollEnabled}
       >
-        {/* Sector Selector & Simulation Trigger */}
+        {/* Monitored Sector Selector & Simulation Trigger */}
         <View style={styles.sectorBar}>
           <Pressable
             style={styles.sectorPicker}
@@ -534,14 +673,14 @@ export default function App() {
           >
             <Flame color={C.amber} size={14} />
             <Text style={styles.simSpikeText}>
-              {isSimulatingSpike ? "Rising..." : "Test Water Surge"}
+              {isSimulatingSpike ? "Rising..." : "Water Surge Test"}
             </Text>
           </Pressable>
         </View>
 
-        {/* 4. Live Disaster Telemetry Cards */}
+        {/* Live Telemetry Cards */}
         <View style={styles.telemetryGrid}>
-          {/* River Water Gauge Card */}
+          {/* River Water Level Card */}
           <View style={[styles.telemetryCard, { flex: 1 }]}>
             <View style={styles.cardHead}>
               <Waves color={C.cyan} size={16} />
@@ -556,13 +695,12 @@ export default function App() {
               <Text style={styles.metricUnit}>meters</Text>
             </View>
 
-            {/* Gauge Progress Bar */}
             <View style={styles.gaugeTrack}>
               <View
                 style={[
                   styles.gaugeFill,
                   {
-                    width: `${Math.min(((liveRiverLevel - 13) / (20 - 13)) * 100, 100)}%`,
+                    width: `${Math.min(((liveRiverLevel - 3) / (8 - 3)) * 100, 100)}%`,
                     backgroundColor: alarmInfo.color,
                   },
                 ]}
@@ -587,19 +725,18 @@ export default function App() {
               <Radio color={C.cyan} size={12} />
               <Text style={styles.miniDetailText}>Rain: {liveRainRate} mm/hr</Text>
             </View>
-            <Text style={styles.cardSub}>Signal #{selectedLoc.stormSignal} Storm Force</Text>
+            <Text style={styles.cardSub}>Signal #{selectedLoc.stormSignal} Force</Text>
           </View>
         </View>
 
-        {/* 5. Tab Views */}
+        {/* TAB 1: Live Radar & Google Map */}
         {screen === "radar" && (
           <View style={{ gap: 14 }}>
-            {/* Live Interactive Google Map */}
             <View style={{ gap: 8 }}>
               <View style={styles.radarHead}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Crosshair color={C.cyan} size={16} />
-                  <Text style={styles.radarTitle}>Live Hazard & Evacuation Map</Text>
+                  <Text style={styles.radarTitle}>Santa Barbara Hazard & Safe Zones</Text>
                 </View>
                 <Text style={styles.syncText}>Synced {lastSyncTime}</Text>
               </View>
@@ -615,15 +752,15 @@ export default function App() {
               />
             </View>
 
-            {/* Critical Alert Warning Card */}
+            {/* Critical Flood Alert Card */}
             <View style={styles.warningCard}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
                 <AlertTriangle color={C.red} size={16} />
                 <Text style={styles.warningTag}>{alarmInfo.title}</Text>
               </View>
-              <Text style={styles.warningHeading}>Marikina River Alert Active</Text>
+              <Text style={styles.warningHeading}>{selectedLoc.riverName} Level at {liveRiverLevel}m</Text>
               <Text style={styles.warningBody}>
-                Water level is at {liveRiverLevel}m. Residents in low-lying river corridors are advised to evacuate to designated centers immediately.
+                Low-lying riverside communities in Barangay Dalongue and nearby Santa Barbara corridors are advised to evacuate immediately to Dalongue Barangay Hall or Central Elementary Gym.
               </Text>
 
               <View style={styles.actionBtnRow}>
@@ -632,7 +769,7 @@ export default function App() {
                   onPress={() => setSelectedCenter(centers[0])}
                 >
                   <Navigation color={C.bgPrimary} size={15} />
-                  <Text style={styles.primaryActionText}>Route to Sports Center</Text>
+                  <Text style={styles.primaryActionText}>Route to Dalongue Hall</Text>
                 </Pressable>
 
                 <Pressable
@@ -647,11 +784,11 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB: Centers */}
+        {/* TAB 2: Evacuation Centers */}
         {screen === "centers" && (
           <View style={{ gap: 12 }}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Safe Evacuation Centers</Text>
+              <Text style={styles.sectionTitle}>Santa Barbara Evacuation Centers</Text>
               <Text style={styles.sectionMeta}>{centers.filter((c) => c.status === "Open").length} Open</Text>
             </View>
 
@@ -706,7 +843,7 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB: Reports */}
+        {/* TAB 3: Incident Reports & Official Queue */}
         {screen === "reports" && (
           <View style={{ gap: 12 }}>
             <View style={styles.sectionHeader}>
@@ -725,30 +862,78 @@ export default function App() {
             </View>
 
             {reports.map((rep) => (
-              <View key={rep.id} style={styles.reportItemCard}>
+              <Pressable
+                key={rep.id}
+                style={[
+                  styles.reportItemCard,
+                  rep.category === "sos" && { borderColor: C.redBorder, backgroundColor: "rgba(127, 29, 29, 0.15)" },
+                ]}
+                onPress={() => {
+                  if (rep.category === "sos" && official) {
+                    setShowResponderSosModal(rep);
+                  }
+                }}
+              >
                 <View style={styles.reportCardHead}>
-                  <Text
-                    style={[
-                      styles.statusPill,
-                      rep.status === "NEW"
-                        ? { color: C.red, backgroundColor: C.redPale }
-                        : rep.status === "ACKNOWLEDGED"
-                        ? { color: C.amber, backgroundColor: C.amberPale }
-                        : { color: C.green, backgroundColor: C.greenPale },
-                    ]}
-                  >
-                    {rep.status}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    {rep.category === "sos" && (
+                      <View style={styles.sosMiniBadge}>
+                        <Siren color={C.white} size={12} />
+                        <Text style={styles.sosMiniText}>SOS BEACON</Text>
+                      </View>
+                    )}
+                    <Text
+                      style={[
+                        styles.statusPill,
+                        rep.status === "NEW"
+                          ? { color: C.red, backgroundColor: C.redPale }
+                          : rep.status === "ACKNOWLEDGED"
+                          ? { color: C.amber, backgroundColor: C.amberPale }
+                          : { color: C.green, backgroundColor: C.greenPale },
+                      ]}
+                    >
+                      {rep.status}
+                    </Text>
+                  </View>
                   <Text style={styles.timeTag}>{rep.timestamp}</Text>
                 </View>
 
                 <Text style={styles.reportTitle}>{rep.title}</Text>
                 <Text style={styles.reportLoc}>📍 {rep.location}</Text>
+
+                {rep.waterDepth && (
+                  <View style={styles.reportMetaRow}>
+                    <Text style={styles.reportMetaPill}>🌊 Flood: {rep.waterDepth}</Text>
+                    {rep.strandedCount && (
+                      <Text style={[styles.reportMetaPill, { borderColor: C.redBorder, color: "#FCA5A5" }]}>
+                        👥 {rep.strandedCount} Stranded
+                      </Text>
+                    )}
+                  </View>
+                )}
+
                 <Text style={styles.reportDetails}>{rep.details}</Text>
+
+                {rep.assignedUnit && (
+                  <View style={styles.assignedBox}>
+                    <LifeBuoy color={C.cyan} size={13} />
+                    <Text style={styles.assignedText}>Assigned: {rep.assignedUnit}</Text>
+                  </View>
+                )}
 
                 {official && (
                   <View style={styles.officialBtnRow}>
-                    {rep.status === "NEW" && (
+                    {rep.category === "sos" && rep.status !== "DISPATCHED" && (
+                      <Pressable
+                        style={styles.sosActionRespondBtn}
+                        onPress={() => setShowResponderSosModal(rep)}
+                      >
+                        <Siren color={C.white} size={13} />
+                        <Text style={styles.sosActionRespondText}>Review SOS (Accept/Decline)</Text>
+                      </Pressable>
+                    )}
+
+                    {rep.status === "NEW" && rep.category !== "sos" && (
                       <Pressable
                         style={styles.ackBtn}
                         onPress={() => handleUpdateStatus(rep.id, "ACKNOWLEDGED")}
@@ -756,12 +941,12 @@ export default function App() {
                         <Text style={styles.ackBtnText}>Acknowledge</Text>
                       </Pressable>
                     )}
-                    {rep.status === "ACKNOWLEDGED" && (
+                    {rep.status === "ACKNOWLEDGED" && rep.category !== "sos" && (
                       <Pressable
                         style={styles.dispatchBtn}
                         onPress={() => handleUpdateStatus(rep.id, "DISPATCHED")}
                       >
-                        <Text style={styles.dispatchBtnText}>Dispatch Rescue</Text>
+                        <Text style={styles.dispatchBtnText}>Dispatch Team</Text>
                       </Pressable>
                     )}
                     {rep.status === "DISPATCHED" && (
@@ -774,29 +959,30 @@ export default function App() {
                     )}
                   </View>
                 )}
-              </View>
+              </Pressable>
             ))}
           </View>
         )}
 
-        {/* TAB: Settings & Hotlines */}
+        {/* TAB 4: Emergency Hotlines & Contacts */}
         {screen === "settings" && (
           <View style={{ gap: 14 }}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Emergency Hotlines & System</Text>
+              <Text style={styles.sectionTitle}>Santa Barbara & Emergency Hotlines</Text>
             </View>
 
             <View style={styles.hotlinesCard}>
-              <HotlineItem num="911" name="National Emergency" desc="Police, Fire, Medical Rescue" />
+              <HotlineItem num="(075) 518-2024" name="Santa Barbara MDRRMO" desc="Municipal Disaster Command & Boat Rescue" />
+              <HotlineItem num="0917-882-9011" name="Dalongue Barangay Quick Desk" desc="Barangay Captain & First Responders" />
+              <HotlineItem num="(075) 522-1144" name="Poblacion Sur Command Post" desc="Central evacuation assistance" />
               <HotlineItem num="143" name="Philippine Red Cross" desc="Disaster response & ambulance" />
-              <HotlineItem num="161" name="Marikina Rescue" desc="River flood & boat dispatch" />
-              <HotlineItem num="(02) 8911-1406" name="NDRRMC Command" desc="National warning center" />
+              <HotlineItem num="911" name="National Emergency Hotline" desc="Police, Fire, Medical, Rescue" />
             </View>
           </View>
         )}
       </ScrollView>
 
-      {/* 6. Floating Bottom Navigation */}
+      {/* 5. Floating Bottom Navigation */}
       <View style={styles.bottomNav}>
         <NavBtn
           icon={<Radio size={19} color={screen === "radar" ? C.cyan : C.textMuted} />}
@@ -811,7 +997,7 @@ export default function App() {
           onPress={() => setScreen("centers")}
         />
 
-        {/* Center Emergency SOS Button (Right of Evac Centers) */}
+        {/* Center Emergency SOS Button */}
         <Pressable
           style={styles.centerSosBtn}
           onPress={() => setShowSosModal(true)}
@@ -839,7 +1025,37 @@ export default function App() {
         />
       </View>
 
-      {/* 7. Center Details Modal */}
+      {/* 6. Authentication Modal (Sign In / Sign Up) */}
+      <Modal visible={showAuthModal} transparent animationType="slide">
+        <AuthModal
+          currentUser={currentUser}
+          onClose={() => setShowAuthModal(false)}
+          onSaveUser={handleSaveUser}
+        />
+      </Modal>
+
+      {/* 7. Resident Emergency SOS Modal with Live GPS Location & Flood Depth */}
+      <Modal visible={showSosModal} transparent animationType="slide">
+        <EmergencySosModal
+          selectedLocation={selectedLoc}
+          onClose={() => setShowSosModal(false)}
+          onSubmit={handleCreateReport}
+        />
+      </Modal>
+
+      {/* 8. Responder SOS Modal (Accept Rescue or Decline / Escalate) */}
+      <Modal visible={!!showResponderSosModal} transparent animationType="fade">
+        {showResponderSosModal && (
+          <ResponderSosModal
+            report={showResponderSosModal}
+            onClose={() => setShowResponderSosModal(null)}
+            onAccept={() => handleAcceptRescue(showResponderSosModal.id)}
+            onDecline={(reason) => handleDeclineOrEscalate(showResponderSosModal.id, reason)}
+          />
+        )}
+      </Modal>
+
+      {/* 9. Evac Center Details Modal */}
       <Modal visible={!!selectedCenter} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
@@ -854,7 +1070,6 @@ export default function App() {
               </Pressable>
             </View>
 
-            {/* Occupancy info */}
             <View style={styles.capModalBox}>
               <Text style={styles.capModalNum}>
                 {selectedCenter?.occupancy} <Text style={{ fontSize: 12, color: C.textMuted }}>/ {selectedCenter?.capacity} Beds</Text>
@@ -914,57 +1129,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* 8. Emergency SOS Confirmation Modal */}
-      <Modal visible={showSosModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalSheet, { borderColor: C.red, borderWidth: 1.5 }]}>
-            <View style={styles.modalHead}>
-              <View>
-                <Text style={[styles.modalTag, { color: C.red }]}>EMERGENCY SOS BEACON</Text>
-                <Text style={styles.modalTitle}>Broadcast Rescue Beacon?</Text>
-              </View>
-              <Pressable style={styles.closeBtn} onPress={() => setShowSosModal(false)}>
-                <X color={C.textPrimary} size={18} />
-              </Pressable>
-            </View>
-
-            <View style={styles.sosAlertBox}>
-              <Siren color={C.red} size={30} />
-              <Text style={styles.sosAlertTitle}>Immediate Rescue Beacon</Text>
-              <Text style={styles.sosAlertDesc}>
-                This sends your live GPS coordinates directly to the Barangay Quick Response Command and rescue boat operators.
-              </Text>
-            </View>
-
-            <Pressable
-              style={styles.confirmSosBtn}
-              onPress={() => {
-                setShowSosModal(false);
-                handleCreateReport({
-                  category: "sos",
-                  title: "CRITICAL SOS: Rescue Beacon Activated",
-                  location: selectedLoc.name,
-                  priority: "CRITICAL",
-                  details: "Resident activated emergency SOS beacon requesting immediate rescue dispatch.",
-                });
-              }}
-            >
-              <Siren color={C.white} size={18} />
-              <Text style={styles.confirmSosText}>CONFIRM RESCUE BEACON</Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.dial911Btn}
-              onPress={() => Alert.alert("Emergency Dial", "Dialing 911...")}
-            >
-              <Phone color={C.red} size={15} />
-              <Text style={styles.dial911Text}>Call 911 Direct</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      {/* 9. Go-Bag Checklist Modal */}
+      {/* 10. Go-Bag Checklist Modal */}
       <Modal visible={showChecklistModal} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
@@ -978,7 +1143,7 @@ export default function App() {
               </Pressable>
             </View>
 
-            <ScrollView style={{ maxHeight: 320 }}>
+            <ScrollView style={{ maxHeight: 300 }}>
               {checklist.map((item) => (
                 <Pressable
                   key={item.id}
@@ -998,7 +1163,7 @@ export default function App() {
             </ScrollView>
 
             <Pressable
-              style={styles.primaryActionBtnModal}
+              style={[styles.primaryActionBtnModal, { marginTop: 12 }]}
               onPress={() => setShowChecklistModal(false)}
             >
               <Text style={styles.primaryActionTextModal}>Done</Text>
@@ -1007,12 +1172,12 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* 10. Sector Picker Modal */}
+      {/* 11. Sector Picker Modal */}
       <Modal visible={showSectorModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHead}>
-              <Text style={styles.modalTitle}>Select Monitoring Sector</Text>
+              <Text style={styles.modalTitle}>Select Monitored Sector</Text>
               <Pressable style={styles.closeBtn} onPress={() => setShowSectorModal(false)}>
                 <X color={C.textPrimary} size={18} />
               </Pressable>
@@ -1044,12 +1209,12 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* 11. Role Switcher Modal */}
+      {/* 12. Role Switcher Modal */}
       <Modal visible={showRoleModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalSheet}>
             <View style={styles.modalHead}>
-              <Text style={styles.modalTitle}>Switch Workspace</Text>
+              <Text style={styles.modalTitle}>Switch Workspace Role</Text>
               <Pressable style={styles.closeBtn} onPress={() => setShowRoleModal(false)}>
                 <X color={C.textPrimary} size={18} />
               </Pressable>
@@ -1065,7 +1230,7 @@ export default function App() {
               <Users color={C.cyan} size={20} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleOptionTitle}>Resident / Community</Text>
-                <Text style={styles.roleOptionSub}>View live radar, open evacuation beds, and submit SOS reports.</Text>
+                <Text style={styles.roleOptionSub}>View live radar, open evacuation beds, and transmit GPS SOS beacon.</Text>
               </View>
             </Pressable>
 
@@ -1079,14 +1244,14 @@ export default function App() {
               <ShieldCheck color={C.teal} size={20} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.roleOptionTitle}>Barangay Official Desk</Text>
-                <Text style={styles.roleOptionSub}>Manage live incident queue, update relief stock & center capacity.</Text>
+                <Text style={styles.roleOptionSub}>Accept/decline rescue missions, dispatch boat teams & update shelter beds.</Text>
               </View>
             </Pressable>
           </View>
         </View>
       </Modal>
 
-      {/* 12. New Report Modal */}
+      {/* 13. New Standard Incident Report Modal */}
       <Modal visible={showReportModal} transparent animationType="slide">
         <CreateReportModal
           locationName={selectedLoc.name}
@@ -1099,7 +1264,532 @@ export default function App() {
 }
 
 // --------------------------------------------------------------------------
-// Sub-components
+// Sub-components: Authentication Modal (Sign In & Sign Up)
+// --------------------------------------------------------------------------
+function AuthModal({
+  currentUser,
+  onClose,
+  onSaveUser,
+}: {
+  currentUser: UserProfile | null;
+  onClose: () => void;
+  onSaveUser: (u: UserProfile | null) => void;
+}) {
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [role, setRole] = useState<Role>("resident");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [barangay, setBarangay] = useState("Dalongue, Santa Barbara");
+  const [phone, setPhone] = useState("");
+
+  const handleSignIn = () => {
+    if (!email || !password) {
+      Alert.alert("Missing Fields", "Please enter your email and password.");
+      return;
+    }
+    const user: UserProfile = {
+      id: `usr-${Date.now()}`,
+      email,
+      fullName: fullName || email.split("@")[0],
+      role,
+      barangay: barangay || "Dalongue, Santa Barbara",
+      phone,
+    };
+    onSaveUser(user);
+    onClose();
+    Alert.alert("Signed In", `Welcome back, ${user.fullName}!`);
+  };
+
+  const handleSignUp = () => {
+    if (!fullName || !email || !password) {
+      Alert.alert("Missing Fields", "Please complete Full Name, Email, and Password.");
+      return;
+    }
+    const user: UserProfile = {
+      id: `usr-${Date.now()}`,
+      email,
+      fullName,
+      role,
+      barangay,
+      phone,
+    };
+    onSaveUser(user);
+    onClose();
+    Alert.alert("Registration Complete", `Account registered for ${user.fullName} (${user.role.toUpperCase()}).`);
+  };
+
+  const handleQuickDemoResident = () => {
+    const user: UserProfile = {
+      id: "demo-res-1",
+      email: "resident.dalongue@agapalert.ph",
+      fullName: "Juan Dela Cruz",
+      role: "resident",
+      barangay: "Dalongue, Santa Barbara",
+      phone: "0917-555-0199",
+    };
+    onSaveUser(user);
+    onClose();
+    Alert.alert("Demo Resident Mode", "Logged in as Juan Dela Cruz (Dalongue Resident).");
+  };
+
+  const handleQuickDemoOfficial = () => {
+    const user: UserProfile = {
+      id: "demo-off-1",
+      email: "mdrmo.santabarbara@pangasinan.gov.ph",
+      fullName: "Officer R. Mendoza",
+      role: "official",
+      barangay: "Santa Barbara Command Desk",
+      phone: "0918-999-4400",
+    };
+    onSaveUser(user);
+    onClose();
+    Alert.alert("Demo Official Mode", "Logged in as Officer R. Mendoza (MDRRMO Santa Barbara).");
+  };
+
+  return (
+    <View style={styles.modalBackdrop}>
+      <View style={[styles.modalSheet, { maxHeight: "90%" }]}>
+        <View style={styles.modalHead}>
+          <View>
+            <Text style={styles.modalTag}>ACCOUNT & CREDENTIALS</Text>
+            <Text style={styles.modalTitle}>
+              {currentUser ? "User Profile" : tab === "signin" ? "Sign In to AgapAlert" : "Create Resident Account"}
+            </Text>
+          </View>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
+            <X color={C.textPrimary} size={18} />
+          </Pressable>
+        </View>
+
+        {currentUser ? (
+          <View style={{ gap: 12 }}>
+            <View style={styles.profileCard}>
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileAvatarText}>{currentUser.fullName.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.profileName}>{currentUser.fullName}</Text>
+                <Text style={styles.profileEmail}>{currentUser.email}</Text>
+                <View style={styles.profileRoleBadge}>
+                  <Text style={styles.profileRoleText}>{currentUser.role.toUpperCase()}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.profileInfoBox}>
+              <Text style={styles.profileInfoLabel}>ASSIGNED BARANGAY / SECTOR</Text>
+              <Text style={styles.profileInfoVal}>{currentUser.barangay || "Dalongue, Santa Barbara"}</Text>
+            </View>
+
+            <Pressable
+              style={styles.logoutBtn}
+              onPress={() => {
+                onSaveUser(null);
+                Alert.alert("Signed Out", "You have been signed out.");
+              }}
+            >
+              <LogOut color={C.red} size={15} />
+              <Text style={styles.logoutText}>Sign Out Account</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Tab Selector */}
+            <View style={styles.authTabRow}>
+              <Pressable
+                style={[styles.authTabBtn, tab === "signin" && styles.authTabBtnActive]}
+                onPress={() => setTab("signin")}
+              >
+                <Text style={[styles.authTabText, tab === "signin" && styles.authTabTextActive]}>Sign In</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.authTabBtn, tab === "signup" && styles.authTabBtnActive]}
+                onPress={() => setTab("signup")}
+              >
+                <Text style={[styles.authTabText, tab === "signup" && styles.authTabTextActive]}>Sign Up</Text>
+              </Pressable>
+            </View>
+
+            {/* Role Picker */}
+            <Text style={styles.modalLabel}>SELECT ROLE</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+              <Pressable
+                style={[styles.roleSelectChip, role === "resident" && styles.roleSelectChipActive]}
+                onPress={() => setRole("resident")}
+              >
+                <Users color={role === "resident" ? C.bgPrimary : C.cyan} size={14} />
+                <Text style={[styles.roleSelectText, role === "resident" && { color: C.bgPrimary }]}>
+                  Resident / Citizen
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.roleSelectChip, role === "official" && styles.roleSelectChipActive]}
+                onPress={() => setRole("official")}
+              >
+                <ShieldCheck color={role === "official" ? C.bgPrimary : C.teal} size={14} />
+                <Text style={[styles.roleSelectText, role === "official" && { color: C.bgPrimary }]}>
+                  Barangay Official
+                </Text>
+              </Pressable>
+            </View>
+
+            {tab === "signup" && (
+              <>
+                <Text style={styles.modalLabel}>FULL NAME</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Maria Santos"
+                  placeholderTextColor={C.textMuted}
+                  value={fullName}
+                  onChangeText={setFullName}
+                />
+
+                <Text style={[styles.modalLabel, { marginTop: 8 }]}>BARANGAY / COMMUNITY</Text>
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="e.g. Dalongue, Santa Barbara"
+                  placeholderTextColor={C.textMuted}
+                  value={barangay}
+                  onChangeText={setBarangay}
+                />
+              </>
+            )}
+
+            <Text style={[styles.modalLabel, { marginTop: 8 }]}>EMAIL ADDRESS</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="e.g. resident@dalongue.ph"
+              placeholderTextColor={C.textMuted}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+            />
+
+            <Text style={[styles.modalLabel, { marginTop: 8 }]}>PASSWORD</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="••••••••"
+              placeholderTextColor={C.textMuted}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+
+            {/* Action Button */}
+            <Pressable
+              style={[styles.primaryActionBtnModal, { marginTop: 14 }]}
+              onPress={tab === "signin" ? handleSignIn : handleSignUp}
+            >
+              <Text style={styles.primaryActionTextModal}>
+                {tab === "signin" ? "Sign In to AgapAlert" : "Create Account & Start"}
+              </Text>
+            </Pressable>
+
+            {/* Quick Demo Shortcuts */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoLabel}>OR INSTANT 1-TAP DEMO LOGIN:</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+                <Pressable style={styles.demoBtn} onPress={handleQuickDemoResident}>
+                  <Text style={styles.demoBtnText}>⚡ Demo Resident</Text>
+                </Pressable>
+                <Pressable style={[styles.demoBtn, { borderColor: "rgba(20, 184, 166, 0.4)" }]} onPress={handleQuickDemoOfficial}>
+                  <Text style={[styles.demoBtnText, { color: C.teal }]}>⚡ Demo Official</Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        )}
+      </View>
+    </View>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Sub-components: Resident Emergency SOS Modal with GPS Location Permission
+// --------------------------------------------------------------------------
+function EmergencySosModal({
+  selectedLocation,
+  onClose,
+  onSubmit,
+}: {
+  selectedLocation: LocationPreset;
+  onClose: () => void;
+  onSubmit: (r: {
+    category: IncidentReport["category"];
+    title: string;
+    location: string;
+    priority: IncidentReport["priority"];
+    details: string;
+    waterDepth?: string;
+    strandedCount?: number;
+    contact?: string;
+    lat?: number;
+    lng?: number;
+  }) => void;
+}) {
+  const [allowLocation, setAllowLocation] = useState(true);
+  const [userGps, setUserGps] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [waterDepth, setWaterDepth] = useState("Waist (1.1m)");
+  const [strandedCount, setStrandedCount] = useState(4);
+  const [landmark, setLandmark] = useState("Near Sinocalan River dike");
+  const [contactPhone, setContactPhone] = useState("0917-882-9011");
+
+  useEffect(() => {
+    fetchGps();
+  }, []);
+
+  const fetchGps = async () => {
+    setIsLocating(true);
+    try {
+      const p = await Location.requestForegroundPermissionsAsync();
+      if (p.status === "granted") {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        setUserGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      } else {
+        setUserGps({ lat: selectedLocation.lat, lng: selectedLocation.lng });
+      }
+    } catch {
+      setUserGps({ lat: selectedLocation.lat, lng: selectedLocation.lng });
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const depthOptions = [
+    { label: "Ankle (0.3m)", icon: "🦶" },
+    { label: "Knee (0.6m)", icon: "🦵" },
+    { label: "Waist (1.1m)", icon: "🌊" },
+    { label: "Chest (1.5m)", icon: "🏊" },
+    { label: "Roof Level (>2m)", icon: "🏠" },
+  ];
+
+  return (
+    <View style={styles.modalBackdrop}>
+      <View style={[styles.modalSheet, { borderColor: C.red, borderWidth: 1.5 }]}>
+        <View style={styles.modalHead}>
+          <View>
+            <Text style={[styles.modalTag, { color: C.red }]}>EMERGENCY RESCUE BEACON</Text>
+            <Text style={styles.modalTitle}>Broadcast Flood SOS</Text>
+          </View>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
+            <X color={C.textPrimary} size={18} />
+          </Pressable>
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+          {/* Location Permission Box */}
+          <View style={styles.sosLocationBox}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <MapPin color={allowLocation ? C.cyan : C.textMuted} size={16} />
+                <Text style={styles.sosLocationTitle}>Share Live GPS Coordinates</Text>
+              </View>
+              <Pressable
+                style={[styles.toggleBtn, allowLocation && styles.toggleBtnActive]}
+                onPress={() => setAllowLocation(!allowLocation)}
+              >
+                <Text style={[styles.toggleBtnText, allowLocation && { color: C.bgPrimary }]}>
+                  {allowLocation ? "ALLOWED" : "OFF"}
+                </Text>
+              </Pressable>
+            </View>
+
+            <Text style={styles.sosLocationSub}>
+              {allowLocation
+                ? userGps
+                  ? `📍 Pinpointed: ${userGps.lat.toFixed(4)}° N, ${userGps.lng.toFixed(4)}° E (Dalongue / Santa Barbara)`
+                  : isLocating
+                  ? "Locating GPS precision..."
+                  : `📍 Target: ${selectedLocation.lat}° N, ${selectedLocation.lng}° E`
+                : "⚠️ Location sharing disabled. Responders will rely on your manual text landmark."}
+            </Text>
+          </View>
+
+          {/* Water Depth Selector */}
+          <Text style={styles.modalLabel}>CURRENT FLOOD WATER DEPTH</Text>
+          <View style={styles.depthGrid}>
+            {depthOptions.map((opt) => (
+              <Pressable
+                key={opt.label}
+                style={[styles.depthChip, waterDepth === opt.label && styles.depthChipActive]}
+                onPress={() => setWaterDepth(opt.label)}
+              >
+                <Text style={styles.depthChipIcon}>{opt.icon}</Text>
+                <Text style={[styles.depthChipText, waterDepth === opt.label && { color: C.bgPrimary }]}>
+                  {opt.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Stranded Count */}
+          <Text style={[styles.modalLabel, { marginTop: 10 }]}>STRANDED PERSONS COUNT</Text>
+          <View style={styles.countRow}>
+            {[1, 2, 3, 4, 5, 6, 8].map((n) => (
+              <Pressable
+                key={n}
+                style={[styles.countChip, strandedCount === n && styles.countChipActive]}
+                onPress={() => setStrandedCount(n)}
+              >
+                <Text style={[styles.countChipText, strandedCount === n && { color: C.bgPrimary }]}>{n}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Landmark & Contact */}
+          <Text style={[styles.modalLabel, { marginTop: 10 }]}>LANDMARK / HOUSE NUMBER</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g. Near Dalongue Elementary, 2-storey roof deck"
+            placeholderTextColor={C.textMuted}
+            value={landmark}
+            onChangeText={setLandmark}
+          />
+
+          <Text style={[styles.modalLabel, { marginTop: 8 }]}>CONTACT NUMBER</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="0917-XXX-XXXX"
+            placeholderTextColor={C.textMuted}
+            keyboardType="phone-pad"
+            value={contactPhone}
+            onChangeText={setContactPhone}
+          />
+
+          {/* Transmit Beacon Button */}
+          <Pressable
+            style={styles.confirmSosBtn}
+            onPress={() => {
+              onSubmit({
+                category: "sos",
+                title: `CRITICAL SOS: ${strandedCount} Stranded in ${waterDepth} flood`,
+                location: `Barangay Dalongue (${landmark})`,
+                priority: "CRITICAL",
+                details: `${strandedCount} residents stranded with ${waterDepth} flood water rising. Contact: ${contactPhone}.`,
+                waterDepth,
+                strandedCount,
+                contact: contactPhone,
+                lat: allowLocation && userGps ? userGps.lat : selectedLocation.lat,
+                lng: allowLocation && userGps ? userGps.lng : selectedLocation.lng,
+              });
+            }}
+          >
+            <Siren color={C.white} size={18} />
+            <Text style={styles.confirmSosText}>TRANSMIT RESCUE BEACON</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.dial911Btn}
+            onPress={() => {
+              Linking.openURL("tel:911");
+            }}
+          >
+            <Phone color={C.red} size={15} />
+            <Text style={styles.dial911Text}>Call 911 Emergency Directly</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </View>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Sub-components: Responder SOS Modal (Accept / Decline Rescue)
+// --------------------------------------------------------------------------
+function ResponderSosModal({
+  report,
+  onClose,
+  onAccept,
+  onDecline,
+}: {
+  report: IncidentReport;
+  onClose: () => void;
+  onAccept: () => void;
+  onDecline: (reason: string) => void;
+}) {
+  return (
+    <View style={styles.modalBackdrop}>
+      <View style={[styles.modalSheet, { borderColor: C.cyan, borderWidth: 1.5 }]}>
+        <View style={styles.modalHead}>
+          <View>
+            <Text style={[styles.modalTag, { color: C.cyan }]}>RESPONDER ACTION DESK</Text>
+            <Text style={styles.modalTitle}>Incoming SOS Mission</Text>
+          </View>
+          <Pressable style={styles.closeBtn} onPress={onClose}>
+            <X color={C.textPrimary} size={18} />
+          </Pressable>
+        </View>
+
+        <View style={styles.responderSosCard}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <Siren color={C.red} size={16} />
+            <Text style={{ color: C.red, fontWeight: "900", fontSize: 13 }}>URGENT FLOOD RESCUE</Text>
+          </View>
+          <Text style={styles.responderSosTitle}>{report.title}</Text>
+          <Text style={styles.responderSosLoc}>📍 {report.location}</Text>
+
+          <View style={styles.reportMetaRow}>
+            {report.waterDepth && (
+              <Text style={styles.reportMetaPill}>🌊 {report.waterDepth}</Text>
+            )}
+            {report.strandedCount && (
+              <Text style={[styles.reportMetaPill, { color: "#FCA5A5", borderColor: C.redBorder }]}>
+                👥 {report.strandedCount} Stranded Persons
+              </Text>
+            )}
+          </View>
+
+          <Text style={styles.responderSosDetails}>{report.details}</Text>
+
+          {report.contact && (
+            <Pressable
+              style={styles.callVictimBtn}
+              onPress={() => Linking.openURL(`tel:${report.contact}`)}
+            >
+              <Phone color={C.cyan} size={14} />
+              <Text style={styles.callVictimText}>Call Victim: {report.contact}</Text>
+            </Pressable>
+          )}
+        </View>
+
+        {/* Accept / Decline Action Buttons */}
+        <View style={styles.responderActionGrid}>
+          <Pressable
+            style={styles.acceptRescueBtn}
+            onPress={onAccept}
+          >
+            <Check color={C.bgPrimary} size={16} />
+            <Text style={styles.acceptRescueText}>ACCEPT RESCUE (Dispatch Boat)</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.declineRescueBtn}
+            onPress={() => {
+              Alert.alert(
+                "Decline & Escalate",
+                "Choose escalation reason for Pangasinan PDRRMO:",
+                [
+                  { text: "Boat Capacity Full", onPress: () => onDecline("Local boat capacity full") },
+                  { text: "Requires Amphibious Truck", onPress: () => onDecline("Requires Heavy Amphibious Truck") },
+                  { text: "Cancel", style: "cancel" },
+                ]
+              );
+            }}
+          >
+            <X color={C.textMuted} size={14} />
+            <Text style={styles.declineRescueText}>DECLINE / ESCALATE (To Provincial)</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Sub-components: Standard Incident Report Modal
 // --------------------------------------------------------------------------
 function CreateReportModal({
   locationName,
@@ -1137,7 +1827,7 @@ function CreateReportModal({
             style={[styles.chipBtn, category === "flood" && styles.chipBtnActive]}
             onPress={() => {
               setCategory("flood");
-              if (!title) setTitle("Rising flood water");
+              if (!title) setTitle("Rising flood water near Dalongue");
             }}
           >
             <Text style={[styles.chipText, category === "flood" && { color: C.bgPrimary }]}>🌊 Flood</Text>
@@ -1146,7 +1836,7 @@ function CreateReportModal({
             style={[styles.chipBtn, category === "medical" && styles.chipBtnActive]}
             onPress={() => {
               setCategory("medical");
-              if (!title) setTitle("Medical evacuation needed");
+              if (!title) setTitle("Medical evacuation assistance");
             }}
           >
             <Text style={[styles.chipText, category === "medical" && { color: C.bgPrimary }]}>🚑 Medical</Text>
@@ -1155,7 +1845,7 @@ function CreateReportModal({
             style={[styles.chipBtn, category === "relief" && styles.chipBtnActive]}
             onPress={() => {
               setCategory("relief");
-              if (!title) setTitle("Relief goods request");
+              if (!title) setTitle("Relief goods & potable water");
             }}
           >
             <Text style={[styles.chipText, category === "relief" && { color: C.bgPrimary }]}>📦 Relief</Text>
@@ -1165,7 +1855,7 @@ function CreateReportModal({
         <Text style={styles.modalLabel}>TITLE</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="e.g. Waist-deep water near Katipunan St."
+          placeholder="e.g. Waist-deep flood near Dalongue Elementary"
           placeholderTextColor={C.textMuted}
           value={title}
           onChangeText={setTitle}
@@ -1174,7 +1864,7 @@ function CreateReportModal({
         <Text style={[styles.modalLabel, { marginTop: 8 }]}>LOCATION / LANDMARK</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="e.g. Concepcion Uno, near bridge"
+          placeholder="e.g. Dalongue, Santa Barbara"
           placeholderTextColor={C.textMuted}
           value={loc}
           onChangeText={setLoc}
@@ -1183,7 +1873,7 @@ function CreateReportModal({
         <Text style={[styles.modalLabel, { marginTop: 8 }]}>DETAILS</Text>
         <TextInput
           style={[styles.textInput, { height: 70, textAlignVertical: "top" }]}
-          placeholder="Number of stranded people, water depth..."
+          placeholder="Number of families, flood depth, urgent needs..."
           placeholderTextColor={C.textMuted}
           multiline
           value={details}
@@ -1223,7 +1913,7 @@ function HotlineItem({ num, name, desc }: { num: string; name: string; desc: str
       </View>
       <Pressable
         style={styles.callBtn}
-        onPress={() => Alert.alert("Hotline", `Calling ${num}...`)}
+        onPress={() => Linking.openURL(`tel:${num.replace(/[^0-9+]/g, "")}`)}
       >
         <Phone color={C.cyan} size={15} />
         <Text style={styles.callBtnText}>Call</Text>
@@ -1314,7 +2004,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingVertical: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -1382,6 +2072,23 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: "900",
   },
+  userBadgeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 9,
+  },
+  userBadgeText: {
+    color: C.cyan,
+    fontSize: 10,
+    fontWeight: "800",
+    maxWidth: 60,
+  },
   roleSwitchBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1389,14 +2096,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.cyanGlow,
     borderWidth: 1.5,
     borderColor: "rgba(6, 182, 212, 0.4)",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 11,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 9,
   },
   roleSwitchBtnOfficial: {
     backgroundColor: "rgba(30, 58, 138, 0.5)",
@@ -1404,7 +2106,7 @@ const styles = StyleSheet.create({
   },
   roleSwitchText: {
     color: C.cyan,
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: "800",
   },
   quickSosBtn: {
@@ -1413,8 +2115,8 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: C.red,
     paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 11,
+    paddingVertical: 6,
+    borderRadius: 9,
     shadowColor: "#EF4444",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -1424,6 +2126,46 @@ const styles = StyleSheet.create({
   quickSosText: {
     color: C.white,
     fontSize: 11,
+    fontWeight: "900",
+  },
+  sosBannerBar: {
+    backgroundColor: "#991B1B",
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(239, 68, 68, 0.4)",
+  },
+  sosBannerIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: C.red,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sosBannerTitle: {
+    color: C.white,
+    fontSize: 11,
+    fontWeight: "900",
+    letterSpacing: 0.3,
+  },
+  sosBannerDesc: {
+    color: "#FECACA",
+    fontSize: 10,
+    marginTop: 1,
+  },
+  sosBannerAction: {
+    backgroundColor: C.white,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 7,
+  },
+  sosBannerActionText: {
+    color: "#991B1B",
+    fontSize: 10,
     fontWeight: "900",
   },
   scroll: {
@@ -1440,11 +2182,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 1,
   },
   sectorPicker: {
     flex: 1,
@@ -1463,7 +2200,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     marginTop: 2,
-    letterSpacing: 0.2,
   },
   simSpikeBtn: {
     flexDirection: "row",
@@ -1475,11 +2211,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 11,
-    shadowColor: "#F59E0B",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 1,
   },
   simSpikeText: {
     color: C.amber,
@@ -1497,11 +2228,6 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
   },
   cardHead: {
     flexDirection: "row",
@@ -1532,7 +2258,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "900",
     color: C.textPrimary,
-    letterSpacing: 0.5,
   },
   metricUnit: {
     fontSize: 12,
@@ -1545,8 +2270,6 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     overflow: "hidden",
     marginVertical: 8,
-    borderWidth: 0.5,
-    borderColor: "rgba(30, 41, 59, 0.8)",
   },
   gaugeFill: {
     height: "100%",
@@ -1569,103 +2292,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  // Radar Box
-  radarBox: {
-    backgroundColor: C.bgSurface,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 18,
-    padding: 14,
-  },
   radarHead: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 8,
   },
   radarTitle: {
     color: C.textPrimary,
     fontWeight: "900",
     fontSize: 14,
-    letterSpacing: 0.3,
   },
   syncText: {
     color: C.textMuted,
     fontSize: 10,
   },
-  mapCanvas: {
-    height: 180,
-    backgroundColor: "#050B14",
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 12,
-    position: "relative",
-    overflow: "hidden",
-  },
-  mapRiverFlow: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: "40%",
-    width: 28,
-    backgroundColor: "rgba(6, 182, 212, 0.2)",
-    transform: [{ skewX: "-15deg" }],
-  },
-  mapPin: {
-    position: "absolute",
-  },
-  pinCenterBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: C.green,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pinCenterText: {
-    color: C.bgPrimary,
-    fontWeight: "900",
-    fontSize: 13,
-  },
-  pinHazardBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: C.red,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  safeRouteBadge: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(7, 15, 30, 0.85)",
-    borderWidth: 1,
-    borderColor: C.border,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 99,
-  },
-  safeRouteText: {
-    color: C.cyan,
-    fontSize: 9.5,
-    fontWeight: "800",
-  },
-  // Warning Card
   warningCard: {
     backgroundColor: "rgba(127, 29, 29, 0.25)",
     borderWidth: 1,
     borderColor: C.redBorder,
     borderRadius: 18,
     padding: 14,
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
   },
   warningTag: {
     color: C.red,
@@ -1675,16 +2322,15 @@ const styles = StyleSheet.create({
   },
   warningHeading: {
     color: C.textPrimary,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "900",
     marginBottom: 6,
-    letterSpacing: 0.3,
   },
   warningBody: {
     color: "#CBD5E1",
-    fontSize: 13,
+    fontSize: 12.5,
     lineHeight: 18,
-    marginBottom: 13,
+    marginBottom: 12,
   },
   actionBtnRow: {
     flexDirection: "row",
@@ -1699,11 +2345,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 2,
   },
   primaryActionText: {
     color: C.bgPrimary,
@@ -1719,29 +2360,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 3,
   },
   sosActionText: {
     color: C.white,
     fontWeight: "900",
     fontSize: 12,
   },
-  // Centers Tab
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   sectionTitle: {
     color: C.textPrimary,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "900",
-    letterSpacing: 0.3,
   },
   sectionMeta: {
     color: C.cyan,
@@ -1754,11 +2388,7 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 8,
   },
   centerCardHead: {
     flexDirection: "row",
@@ -1767,13 +2397,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   statusPill: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: "900",
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 0.5,
-    overflow: "hidden",
   },
   distTag: {
     color: C.textMuted,
@@ -1785,13 +2414,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "900",
     marginBottom: 3,
-    letterSpacing: 0.2,
   },
   centerCardLoc: {
     color: C.textSecondary,
     fontSize: 12,
-    marginBottom: 11,
-    lineHeight: 16,
+    marginBottom: 10,
   },
   capRow: {
     flexDirection: "row",
@@ -1812,9 +2439,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.border,
     borderRadius: 99,
     overflow: "hidden",
-    marginBottom: 11,
-    borderWidth: 0.5,
-    borderColor: "rgba(30, 41, 59, 0.8)",
+    marginBottom: 10,
   },
   capFill: {
     height: "100%",
@@ -1826,15 +2451,13 @@ const styles = StyleSheet.create({
     gap: 6,
     borderTopWidth: 1,
     borderTopColor: C.border,
-    paddingTop: 10,
-    marginTop: 2,
+    paddingTop: 8,
   },
   suppliesText: {
     color: C.textMuted,
     fontSize: 11,
     flex: 1,
   },
-  // Reports Tab
   newReportBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -1843,11 +2466,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 10,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   newReportBtnText: {
     color: C.bgPrimary,
@@ -1860,11 +2478,7 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 16,
     padding: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 10,
   },
   reportCardHead: {
     flexDirection: "row",
@@ -1872,36 +2486,93 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
+  sosMiniBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: C.red,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 5,
+  },
+  sosMiniText: {
+    color: C.white,
+    fontSize: 8.5,
+    fontWeight: "900",
+  },
   timeTag: {
     color: C.textMuted,
     fontSize: 10.5,
   },
   reportTitle: {
     color: C.textPrimary,
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "900",
     marginBottom: 3,
-    letterSpacing: 0.2,
   },
   reportLoc: {
     color: C.textSecondary,
     fontSize: 12,
     marginBottom: 6,
-    lineHeight: 16,
+  },
+  reportMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 6,
+  },
+  reportMetaPill: {
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    color: C.cyan,
+    fontSize: 10.5,
+    fontWeight: "800",
   },
   reportDetails: {
     color: C.textSecondary,
     fontSize: 12,
     lineHeight: 17,
   },
+  assignedBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: C.cyanGlow,
+    padding: 7,
+    borderRadius: 7,
+    marginTop: 8,
+  },
+  assignedText: {
+    color: C.cyan,
+    fontSize: 11,
+    fontWeight: "800",
+  },
   officialBtnRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
-    marginTop: 12,
+    marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: C.border,
     paddingTop: 10,
+  },
+  sosActionRespondBtn: {
+    backgroundColor: C.red,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  sosActionRespondText: {
+    color: C.white,
+    fontSize: 11,
+    fontWeight: "900",
   },
   ackBtn: {
     backgroundColor: C.amberPale,
@@ -1910,11 +2581,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.3)",
-    shadowColor: "#F59E0B",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 1,
   },
   ackBtnText: {
     color: C.amber,
@@ -1928,11 +2594,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(6, 182, 212, 0.3)",
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 1,
   },
   dispatchBtnText: {
     color: C.cyan,
@@ -1946,29 +2607,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(16, 185, 129, 0.3)",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 1,
   },
   resolveBtnText: {
     color: C.green,
     fontSize: 11,
     fontWeight: "800",
   },
-  // Hotlines
   hotlinesCard: {
     backgroundColor: C.bgSurface,
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 16,
     padding: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 2,
   },
   hotlineRow: {
     flexDirection: "row",
@@ -1980,15 +2630,13 @@ const styles = StyleSheet.create({
   },
   hotlineNum: {
     color: C.cyan,
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "900",
-    letterSpacing: 0.5,
   },
   hotlineName: {
     color: C.textPrimary,
-    fontSize: 14,
+    fontSize: 13.5,
     fontWeight: "900",
-    letterSpacing: 0.2,
   },
   hotlineDesc: {
     color: C.textMuted,
@@ -2004,18 +2652,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     paddingVertical: 7,
     borderRadius: 9,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   callBtnText: {
     color: C.cyan,
     fontSize: 11,
     fontWeight: "800",
   },
-  // Bottom Navigation
   bottomNav: {
     position: "absolute",
     bottom: 0,
@@ -2030,11 +2672,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 6,
     paddingBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   navBtn: {
     alignItems: "center",
@@ -2067,7 +2704,6 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: "900",
     marginTop: 2,
-    letterSpacing: 0.5,
   },
   navIconBox: {
     padding: 4,
@@ -2099,9 +2735,7 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: "800",
     marginTop: 3,
-    letterSpacing: 0.3,
   },
-  // Modals
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.8)",
@@ -2114,11 +2748,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: C.borderLight,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 5,
+    maxHeight: "85%",
   },
   modalHead: {
     flexDirection: "row",
@@ -2137,10 +2767,9 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     color: C.textPrimary,
-    fontSize: 19,
+    fontSize: 18,
     fontWeight: "900",
     marginTop: 3,
-    letterSpacing: 0.3,
   },
   modalSub: {
     color: C.textMuted,
@@ -2157,11 +2786,6 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderWidth: 1,
     borderColor: "rgba(6, 182, 212, 0.2)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   capModalNum: {
     fontSize: 16,
@@ -2192,11 +2816,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "rgba(6, 182, 212, 0.2)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
   },
   supplyPillText: {
     color: C.textSecondary,
@@ -2204,14 +2823,14 @@ const styles = StyleSheet.create({
   },
   modalActionRow: {
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     marginTop: 6,
   },
   outlineActionBtn: {
     flex: 1,
     borderWidth: 1.5,
     borderColor: C.borderLight,
-    paddingVertical: 11,
+    paddingVertical: 10,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
@@ -2222,10 +2841,10 @@ const styles = StyleSheet.create({
   outlineActionText: {
     color: C.cyan,
     fontWeight: "800",
-    fontSize: 12.5,
+    fontSize: 12,
   },
   primaryActionBtnModal: {
-    flex: 1.3,
+    flex: 1.2,
     backgroundColor: C.cyan,
     paddingVertical: 11,
     borderRadius: 12,
@@ -2233,45 +2852,249 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 2,
   },
   primaryActionTextModal: {
     color: C.bgPrimary,
     fontWeight: "900",
     fontSize: 12.5,
   },
-  // SOS Modal
-  sosAlertBox: {
-    backgroundColor: C.redPale,
-    borderWidth: 1.5,
-    borderColor: C.redBorder,
-    borderRadius: 16,
-    padding: 16,
+  // Auth Modal Styles
+  authTabRow: {
+    flexDirection: "row",
+    backgroundColor: C.bgCard,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 12,
+  },
+  authTabBtn: {
+    flex: 1,
+    paddingVertical: 7,
     alignItems: "center",
-    marginVertical: 12,
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 8,
   },
-  sosAlertTitle: {
-    color: C.red,
-    fontWeight: "900",
-    fontSize: 16,
-    marginTop: 7,
-    letterSpacing: 0.3,
+  authTabBtnActive: {
+    backgroundColor: C.cyan,
   },
-  sosAlertDesc: {
-    color: "#FECACA",
+  authTabText: {
+    color: C.textMuted,
     fontSize: 12,
-    textAlign: "center",
-    lineHeight: 17,
-    marginTop: 5,
+    fontWeight: "800",
+  },
+  authTabTextActive: {
+    color: C.bgPrimary,
+  },
+  roleSelectChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  roleSelectChipActive: {
+    backgroundColor: C.cyan,
+    borderColor: C.cyan,
+  },
+  roleSelectText: {
+    color: C.textSecondary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  demoSection: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  demoLabel: {
+    color: C.textMuted,
+    fontSize: 9.5,
+    fontWeight: "900",
+    letterSpacing: 0.6,
+  },
+  demoBtn: {
+    flex: 1,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.4)",
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  demoBtnText: {
+    color: C.cyan,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: C.bgCard,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  profileAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: C.cyan,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileAvatarText: {
+    color: C.bgPrimary,
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  profileName: {
+    color: C.textPrimary,
+    fontSize: 15,
+    fontWeight: "900",
+  },
+  profileEmail: {
+    color: C.textMuted,
+    fontSize: 11.5,
+    marginTop: 1,
+  },
+  profileRoleBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: C.cyanGlow,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+    marginTop: 4,
+  },
+  profileRoleText: {
+    color: C.cyan,
+    fontSize: 9,
+    fontWeight: "900",
+  },
+  profileInfoBox: {
+    backgroundColor: C.bgCard,
+    padding: 12,
+    borderRadius: 10,
+  },
+  profileInfoLabel: {
+    color: C.textMuted,
+    fontSize: 9.5,
+    fontWeight: "900",
+  },
+  profileInfoVal: {
+    color: C.textPrimary,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 3,
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: C.redPale,
+    borderWidth: 1,
+    borderColor: C.redBorder,
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  logoutText: {
+    color: C.red,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  // SOS Location Permission Box
+  sosLocationBox: {
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.3)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  sosLocationTitle: {
+    color: C.textPrimary,
+    fontSize: 12.5,
+    fontWeight: "900",
+  },
+  sosLocationSub: {
+    color: C.textSecondary,
+    fontSize: 11,
+    marginTop: 6,
+    lineHeight: 15,
+  },
+  toggleBtn: {
+    backgroundColor: C.border,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  toggleBtnActive: {
+    backgroundColor: C.cyan,
+  },
+  toggleBtnText: {
+    color: C.textMuted,
+    fontSize: 9.5,
+    fontWeight: "900",
+  },
+  depthGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 4,
+  },
+  depthChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  depthChipActive: {
+    backgroundColor: C.cyan,
+    borderColor: C.cyan,
+  },
+  depthChipIcon: {
+    fontSize: 13,
+  },
+  depthChipText: {
+    color: C.textSecondary,
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  countRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 6,
+  },
+  countChip: {
+    width: 38,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countChipActive: {
+    backgroundColor: C.cyan,
+    borderColor: C.cyan,
+  },
+  countChipText: {
+    color: C.textSecondary,
+    fontSize: 13,
+    fontWeight: "900",
   },
   confirmSosBtn: {
     backgroundColor: C.red,
@@ -2281,12 +3104,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 6,
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 14,
   },
   confirmSosText: {
     color: C.white,
@@ -2297,21 +3115,91 @@ const styles = StyleSheet.create({
     backgroundColor: C.bgCard,
     borderWidth: 1.5,
     borderColor: C.redBorder,
-    paddingVertical: 11,
+    paddingVertical: 10,
     borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
     marginTop: 8,
-    shadowColor: "#EF4444",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 1,
   },
   dial911Text: {
     color: C.red,
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  // Responder SOS Modal Styles
+  responderSosCard: {
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  responderSosTitle: {
+    color: C.textPrimary,
+    fontSize: 15,
+    fontWeight: "900",
+    marginTop: 2,
+  },
+  responderSosLoc: {
+    color: C.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  responderSosDetails: {
+    color: C.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  callVictimBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: C.cyanGlow,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.4)",
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  callVictimText: {
+    color: C.cyan,
+    fontSize: 11.5,
+    fontWeight: "800",
+  },
+  responderActionGrid: {
+    gap: 8,
+  },
+  acceptRescueBtn: {
+    backgroundColor: C.cyan,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  acceptRescueText: {
+    color: C.bgPrimary,
+    fontWeight: "900",
+    fontSize: 13,
+  },
+  declineRescueBtn: {
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: C.borderLight,
+    paddingVertical: 10,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  declineRescueText: {
+    color: C.textMuted,
     fontWeight: "800",
     fontSize: 12,
   },
@@ -2329,7 +3217,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
   },
-  // Options
   sectorOption: {
     flexDirection: "row",
     alignItems: "center",
@@ -2340,17 +3227,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 8,
     backgroundColor: C.bgCard,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   sectorOptionTitle: {
     color: C.textPrimary,
     fontWeight: "900",
     fontSize: 14,
-    letterSpacing: 0.2,
   },
   sectorOptionSub: {
     color: C.textMuted,
@@ -2367,26 +3248,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 10,
     backgroundColor: C.bgCard,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   roleOptionActive: {
     borderColor: C.cyan,
     backgroundColor: C.cyanGlow,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
   },
   roleOptionTitle: {
     color: C.textPrimary,
     fontWeight: "900",
     fontSize: 15,
-    letterSpacing: 0.2,
   },
   roleOptionSub: {
     color: C.textMuted,
@@ -2394,7 +3264,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 16,
   },
-  // Inputs
   modalLabel: {
     color: C.textMuted,
     fontSize: 9.5,
@@ -2410,20 +3279,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
   chipBtnActive: {
     backgroundColor: C.cyan,
     borderColor: C.cyan,
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   chipText: {
     color: C.textSecondary,
@@ -2436,13 +3295,8 @@ const styles = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 9,
     color: C.textPrimary,
     fontSize: 12.5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
 });

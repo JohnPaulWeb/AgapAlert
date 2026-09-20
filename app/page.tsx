@@ -1,39 +1,41 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
+  Anchor,
   Bell,
+  Check,
   CheckCircle2,
-  ChevronRight,
+  Clock,
+  CloudLightning,
+  CloudRain,
   Compass,
+  Cross,
   Crosshair,
   ExternalLink,
   Eye,
-  Filter,
   Flame,
-  HeartHandshake,
   Home,
-  Info,
   Layers,
   LifeBuoy,
   MapPin,
+  Minus,
   Navigation,
   Package,
   Phone,
   Plus,
-  Radio,
-  RefreshCw,
   Search,
   Send,
-  Share2,
   Shield,
-  ShieldAlert,
   ShieldCheck,
   Siren,
-  Sliders,
-  Sparkles,
-  Thermometer,
+  Stethoscope,
+  TrafficCone,
+  TreePine,
+  TrendingDown,
+  TrendingUp,
   Truck,
   Users,
   Volume2,
@@ -41,16 +43,28 @@ import {
   Waves,
   Wind,
   X,
+  User,
+  LogIn,
+  LogOut,
+  UserPlus,
+  LocateFixed,
+  Radio,
+  CheckCheck,
+  XCircle,
+  Navigation2,
+  AlertOctagon,
+  BadgeCheck,
 } from "lucide-react";
 
 import dynamic from "next/dynamic";
+import { supabase } from "@/lib/supabase";
 
 const InteractiveMap = dynamic(() => import("@/components/InteractiveMap"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[580px] bg-[#071120] border border-slate-800 rounded-3xl flex flex-col items-center justify-center gap-3 text-slate-400">
-      <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></div>
-      <span className="text-xs font-bold tracking-wider">Initializing Live Geospatial Map...</span>
+    <div className="w-full h-[600px] sm:h-[660px] bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center gap-3 text-slate-400">
+      <div className="h-8 w-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin"></div>
+      <span className="text-xs font-medium tracking-wide">Loading live map…</span>
     </div>
   ),
 });
@@ -58,6 +72,16 @@ const InteractiveMap = dynamic(() => import("@/components/InteractiveMap"), {
 // Types
 type Role = "resident" | "official";
 type Tab = "radar" | "centers" | "reports" | "hotlines";
+type ToastTone = "success" | "warning" | "danger";
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  barangay: string;
+  phone?: string;
+}
 
 interface LocationPreset {
   id: string;
@@ -78,6 +102,23 @@ interface LocationPreset {
 }
 
 const LOCATIONS: LocationPreset[] = [
+  {
+    id: "dalongue",
+    name: "Barangay Dalongue, Santa Barbara",
+    region: "Pangasinan, Ilocos Region",
+    riverName: "Sinocalan River",
+    riverLevel: 5.82,
+    riverTrend: "rising",
+    alarmLevel: 2,
+    stormSignal: 3,
+    windSpeed: 82,
+    rainRate: 34,
+    status: "Warning",
+    evacCentersCount: 4,
+    lat: 16.0034,
+    lng: 120.3850,
+    zoom: 15,
+  },
   {
     id: "marikina",
     name: "Marikina City",
@@ -108,7 +149,7 @@ const LOCATIONS: LocationPreset[] = [
     rainRate: 15,
     status: "Watch",
     evacCentersCount: 8,
-    lat: 14.6760,
+    lat: 14.676,
     lng: 121.0437,
     zoom: 13,
   },
@@ -143,7 +184,7 @@ const LOCATIONS: LocationPreset[] = [
     status: "Critical",
     evacCentersCount: 12,
     lat: 17.6132,
-    lng: 121.7270,
+    lng: 121.727,
     zoom: 13,
   },
 ];
@@ -166,6 +207,70 @@ interface EvacCenter {
 }
 
 const INITIAL_CENTERS: EvacCenter[] = [
+  {
+    id: "c-sb-1",
+    name: "Dalongue Barangay Evacuation Hall",
+    barangay: "Dalongue",
+    city: "Santa Barbara, Pangasinan",
+    distance: "0.4 km",
+    status: "Open",
+    occupancy: 42,
+    capacity: 180,
+    supplies: ["Clean Drinking Water (800L)", "Ready-to-Eat Rice", "Hygiene Kits", "First Aid Station"],
+    features: ["Medical Aid", "High Ground", "Generator Power", "Rescue Boats on Site"],
+    contact: "(075) 518-2024",
+    elevation: "18m High Ground",
+    lat: 16.0034,
+    lng: 120.3850,
+  },
+  {
+    id: "c-sb-2",
+    name: "Santa Barbara Multi-Purpose Gymnasium",
+    barangay: "Poblacion Sur",
+    city: "Santa Barbara, Pangasinan",
+    distance: "1.2 km",
+    status: "Open",
+    occupancy: 110,
+    capacity: 350,
+    supplies: ["Hot Meals Desk", "Thermal Blankets", "Medical Station", "Infant Formula"],
+    features: ["Medical Aid", "Pet Friendly", "High Ground", "Solar Backup"],
+    contact: "0917-508-1122",
+    elevation: "22m High Elevation",
+    lat: 15.9982,
+    lng: 120.4015,
+  },
+  {
+    id: "c-sb-3",
+    name: "Tuliao Disaster Evacuation Center",
+    barangay: "Tuliao",
+    city: "Santa Barbara, Pangasinan",
+    distance: "1.8 km",
+    status: "Open",
+    occupancy: 65,
+    capacity: 220,
+    supplies: ["Water Purification Units", "Family Food Packs", "Sleeping Mats"],
+    features: ["Medical Aid", "Pet Friendly", "High Ground"],
+    contact: "0920-911-3344",
+    elevation: "20m Elevation",
+    lat: 16.0120,
+    lng: 120.3780,
+  },
+  {
+    id: "c-sb-4",
+    name: "Minien National High School Shelter",
+    barangay: "Minien",
+    city: "Santa Barbara, Pangasinan",
+    distance: "2.6 km",
+    status: "Open",
+    occupancy: 88,
+    capacity: 200,
+    supplies: ["Bottled Water", "Emergency Biscuits", "Flashlights"],
+    features: ["High Ground", "Classroom Modular Partitions"],
+    contact: "0939-440-1288",
+    elevation: "21m High Ground",
+    lat: 16.0175,
+    lng: 120.3950,
+  },
   {
     id: "c1",
     name: "Marikina Sports Center Complex",
@@ -198,70 +303,6 @@ const INITIAL_CENTERS: EvacCenter[] = [
     lat: 14.6528,
     lng: 121.1052,
   },
-  {
-    id: "c3",
-    name: "San Roque Multipurpose Evac Center",
-    barangay: "San Roque",
-    city: "Marikina City",
-    distance: "2.1 km",
-    status: "Open",
-    occupancy: 78,
-    capacity: 140,
-    supplies: ["Hot Meals", "Canned Goods", "Flashlights & Batteries"],
-    features: ["Pet Friendly", "High Ground"],
-    contact: "(02) 8646-0812",
-    elevation: "22m Elevation",
-    lat: 14.6291,
-    lng: 121.1005,
-  },
-  {
-    id: "c4",
-    name: "Claro M. Recto High School",
-    barangay: "Loyola Heights",
-    city: "Quezon City",
-    distance: "3.2 km",
-    status: "Open",
-    occupancy: 160,
-    capacity: 280,
-    supplies: ["Water Purifiers", "Family Food Packs", "Sleeping Mats"],
-    features: ["Medical Aid", "High Ground", "Solar Power"],
-    contact: "(02) 8928-1144",
-    elevation: "32m High Ground",
-    lat: 14.6468,
-    lng: 121.0776,
-  },
-  {
-    id: "c5",
-    name: "West Triangle Evacuation Gym",
-    barangay: "West Triangle",
-    city: "Quezon City",
-    distance: "4.0 km",
-    status: "Full",
-    occupancy: 180,
-    capacity: 180,
-    supplies: ["Supply Replenishment Dispatched"],
-    features: ["Pet Friendly"],
-    contact: "(02) 8373-5521",
-    elevation: "18m Elevation",
-    lat: 14.6496,
-    lng: 121.0367,
-  },
-  {
-    id: "c6",
-    name: "Santolan Multi-Level Disaster Center",
-    barangay: "Santolan",
-    city: "Pasig City",
-    distance: "2.7 km",
-    status: "Open",
-    occupancy: 95,
-    capacity: 170,
-    supplies: ["Potable Water", "Hot Porridge (Lugaw)", "Medical Doctor on Duty"],
-    features: ["Medical Aid", "High Ground"],
-    contact: "(02) 8641-0022",
-    elevation: "20m Elevation",
-    lat: 14.6105,
-    lng: 121.0883,
-  },
 ];
 
 interface IncidentReport {
@@ -276,67 +317,211 @@ interface IncidentReport {
   contact?: string;
   lat?: number;
   lng?: number;
+  waterDepth?: string;
+  peopleCount?: number;
+  victimName?: string;
+  actionNotes?: string;
 }
 
 const INITIAL_REPORTS: IncidentReport[] = [
+  {
+    id: "sos-sb-1",
+    category: "sos",
+    title: "CRITICAL SOS: 3 Families Stranded near Sinocalan River Dike",
+    location: "Barangay Dalongue, Santa Barbara (Sinocalan Riverbank)",
+    timestamp: "2 min ago",
+    status: "NEW",
+    priority: "CRITICAL",
+    details:
+      "Rapid flood water rising above waist level from Sinocalan River overflow. 8 persons including 2 seniors and 1 infant trapped on upper roof deck. Immediate rescue boat needed.",
+    contact: "0917-508-1122",
+    lat: 16.0048,
+    lng: 120.3862,
+    waterDepth: "Waist-deep (1.2m)",
+    peopleCount: 8,
+    victimName: "Maria Santos & Cruz Family",
+  },
+  {
+    id: "rep-sb-2",
+    category: "flood",
+    title: "Chest-deep flood water along Dalongue-Tuliao access road",
+    location: "Dalongue-Tuliao boundary road, Santa Barbara",
+    timestamp: "12 min ago",
+    status: "NEW",
+    priority: "HIGH",
+    details:
+      "Water level reached 1.4m. Light vehicles and tricycles completely impassable. High-clearance truck or rubber boat required for safe transit.",
+    contact: "0920-551-7788",
+    lat: 16.0090,
+    lng: 120.3810,
+    waterDepth: "Chest-deep (1.4m)",
+  },
+  {
+    id: "rep-sb-3",
+    category: "medical",
+    title: "Senior insulin patient evacuation required",
+    location: "Poblacion Sur, Santa Barbara",
+    timestamp: "25 min ago",
+    status: "ACKNOWLEDGED",
+    priority: "HIGH",
+    details:
+      "Elderly resident requires transport to Santa Barbara Rural Health Unit with power for refrigerated insulin medication.",
+    contact: "0939-112-9900",
+    lat: 15.9982,
+    lng: 120.4015,
+  },
   {
     id: "rep-1",
     category: "flood",
     title: "Waist-deep rapid flood near Katipunan St.",
     location: "Concepcion Uno, Marikina",
-    timestamp: "4 min ago",
-    status: "NEW",
+    timestamp: "35 min ago",
+    status: "ACKNOWLEDGED",
     priority: "CRITICAL",
-    details: "4 families stranded on 2nd floor with 2 elderly seniors. Water rising 10cm every 15 mins. Rescue boat requested.",
+    details: "4 families stranded on 2nd floor. Rescue team notified.",
     contact: "0917-882-1920",
     lat: 14.6515,
-    lng: 121.1070,
-  },
-  {
-    id: "rep-2",
-    category: "medical",
-    title: "Oxygen tank & senior patient transport",
-    location: "San Roque Riverside",
-    timestamp: "18 min ago",
-    status: "ACKNOWLEDGED",
-    priority: "HIGH",
-    details: "Elderly resident on oxygen concentrator lost power. Needs ambulance transfer to high-ground hospital.",
-    contact: "0920-551-4432",
-    lat: 14.6280,
-    lng: 121.0965,
-  },
-  {
-    id: "rep-3",
-    category: "relief",
-    title: "Relief food & potable water shortage",
-    location: "Barangka Community Hall",
-    timestamp: "45 min ago",
-    status: "DISPATCHED",
-    priority: "MEDIUM",
-    details: "60 evacuees have arrived. Water tanker truck dispatched from city hall.",
-    lat: 14.6335,
-    lng: 121.0872,
-  },
-  {
-    id: "rep-4",
-    category: "debris",
-    title: "Fallen acacia tree blocking Tumana Bridge exit",
-    location: "Tumana Bridge approach",
-    timestamp: "1 hr ago",
-    status: "RESOLVED",
-    priority: "MEDIUM",
-    details: "DPWH & Barangay chainsaw clearing crew cleared one lane. Passable for rescue 4x4s.",
-    lat: 14.6575,
-    lng: 121.1012,
+    lng: 121.107,
   },
 ];
 
+// ---- Shared design tokens ----
+const panel = "rounded-xl border border-slate-800 bg-slate-900/70";
+const inputCls =
+  "w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/40";
+const selectCls =
+  "rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs font-medium text-slate-100 transition focus:border-cyan-500 focus:outline-none cursor-pointer";
+const badge =
+  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide";
+
+const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: "radar", label: "Live Map", icon: Compass },
+  { id: "centers", label: "Shelters", icon: Home },
+  { id: "reports", label: "Incidents", icon: Layers },
+  { id: "hotlines", label: "Hotlines", icon: Phone },
+];
+
+const HOTLINES: { name: string; num: string; agency: string; service: string; icon: LucideIcon }[] = [
+  { name: "Santa Barbara MDRRMO", num: "(075) 518-2024", agency: "Santa Barbara Pangasinan DRRM", service: "Sinocalan flood rescue & boat dispatch", icon: LifeBuoy },
+  { name: "Santa Barbara Mayor Emergency", num: "0917-508-1122", agency: "LGU Santa Barbara Command", service: "24/7 Disaster Quick Response", icon: ShieldCheck },
+  { name: "Pangasinan PDRRMO", num: "(075) 542-7000", agency: "Provincial DRRM Council", service: "Provincial rescue & air/boat assets", icon: Shield },
+  { name: "National Emergency", num: "911", agency: "PNP · BFP · Ambulance", service: "National emergency dispatch", icon: Siren },
+  { name: "Philippine Red Cross Pangasinan", num: "(075) 522-2258", agency: "Red Cross Dagupan/Pangasinan", service: "Medical response & relief aid", icon: Cross },
+  { name: "PAGASA Weather Alert", num: "(02) 8284-0800", agency: "PAGASA", service: "Typhoon & Sinocalan river bulletins", icon: CloudLightning },
+  { name: "Coast Guard Pangasinan Station", num: "0917-819-4825", agency: "Philippine Coast Guard", service: "Flood & maritime watercraft rescue", icon: Anchor },
+  { name: "DOH Health Emergency", num: "1555", agency: "Department of Health", service: "Emergency medical advice", icon: Stethoscope },
+];
+
+const RESPONSE_TEAMS = [
+  { name: "Santa Barbara Water Search & Rescue (WASAR)", status: "Active in Dalongue", dot: "bg-emerald-400", cls: "text-emerald-400" },
+  { name: "Dalongue Barangay QRT Boat Crew", status: "On patrol", dot: "bg-cyan-400", cls: "text-cyan-400" },
+  { name: "MDRRMO Amphibious Logistics Truck", status: "En route to Tuliao", dot: "bg-amber-400", cls: "text-amber-400" },
+];
+
+const reportCategoryMeta: Record<IncidentReport["category"], { icon: LucideIcon; cls: string }> = {
+  flood: { icon: Waves, cls: "border-sky-500/20 bg-sky-500/10 text-sky-400" },
+  medical: { icon: Cross, cls: "border-rose-500/20 bg-rose-500/10 text-rose-400" },
+  relief: { icon: Package, cls: "border-amber-500/20 bg-amber-500/10 text-amber-400" },
+  debris: { icon: TreePine, cls: "border-lime-500/20 bg-lime-500/10 text-lime-400" },
+  sos: { icon: Siren, cls: "border-red-500/20 bg-red-500/10 text-red-400" },
+};
+
+const reportStatusMeta: Record<IncidentReport["status"], { icon: LucideIcon; cls: string }> = {
+  NEW: { icon: Bell, cls: "border-red-500/30 bg-red-500/15 text-red-300" },
+  ACKNOWLEDGED: { icon: Eye, cls: "border-amber-500/30 bg-amber-500/15 text-amber-300" },
+  DISPATCHED: { icon: Send, cls: "border-blue-500/30 bg-blue-500/15 text-blue-300" },
+  RESOLVED: { icon: CheckCircle2, cls: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300" },
+};
+
+const ribbonMeta: Record<LocationPreset["status"], { wrap: string; dot: string; text: string }> = {
+  Normal: { wrap: "border-emerald-500/25 bg-emerald-950/40", dot: "bg-emerald-400", text: "text-emerald-300" },
+  Watch: { wrap: "border-amber-500/25 bg-amber-950/40", dot: "bg-amber-400", text: "text-amber-300" },
+  Warning: { wrap: "border-orange-500/30 bg-orange-950/40", dot: "bg-orange-400", text: "text-orange-300" },
+  Critical: { wrap: "border-red-500/35 bg-red-950/50", dot: "bg-red-400", text: "text-red-300" },
+};
+
+const advisoryMeta = [
+  {
+    title: "Conditions Normal",
+    body: "No flood threat at the current water level. Continue monitoring official advisories.",
+    card: "border-emerald-500/30 bg-emerald-950/20",
+    accent: "text-emerald-400",
+    chip: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+  },
+  {
+    title: "Monitor Flood Conditions",
+    body: "Water level is approaching the warning threshold. Prepare to evacuate if conditions worsen.",
+    card: "border-amber-500/30 bg-amber-950/20",
+    accent: "text-amber-400",
+    chip: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+  },
+  {
+    title: "Preparatory Evacuation Advised",
+    body: "Residents in low-lying and riverside areas should evacuate to high-ground centers now.",
+    card: "border-orange-500/30 bg-orange-950/20",
+    accent: "text-orange-400",
+    chip: "border-orange-500/30 bg-orange-500/15 text-orange-300",
+  },
+  {
+    title: "Forced Evacuation in Effect",
+    body: "Immediate evacuation required. Move to the nearest high-ground center and avoid waterlogged roads.",
+    card: "border-red-500/40 bg-red-950/25",
+    accent: "text-red-400",
+    chip: "border-red-500/40 bg-red-500/15 text-red-300",
+  },
+];
+
+const trendMeta: Record<LocationPreset["riverTrend"], { icon: LucideIcon; cls: string; label: string }> = {
+  rising: { icon: TrendingUp, cls: "text-red-400", label: "rising" },
+  stable: { icon: Minus, cls: "text-slate-400", label: "stable" },
+  falling: { icon: TrendingDown, cls: "text-emerald-400", label: "falling" },
+};
+
+const toastMeta: Record<ToastTone, { icon: LucideIcon; border: string; iconCls: string }> = {
+  success: { icon: CheckCircle2, border: "border-emerald-500/40", iconCls: "text-emerald-400" },
+  warning: { icon: AlertTriangle, border: "border-amber-500/40", iconCls: "text-amber-400" },
+  danger: { icon: Siren, border: "border-red-500/40", iconCls: "text-red-400" },
+};
+
+function Toast({ toast }: { toast: { message: string; tone: ToastTone } }) {
+  const meta = toastMeta[toast.tone];
+  const Icon = meta.icon;
+  return (
+    <div
+      role="status"
+      className={`fixed bottom-6 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-2.5 rounded-xl border bg-slate-900/95 px-4 py-3 text-sm font-medium text-slate-100 shadow-2xl backdrop-blur animate-in slide-in-from-bottom-5 duration-300 sm:left-auto sm:right-6 sm:translate-x-0 ${meta.border}`}
+    >
+      <Icon className={`h-4 w-4 shrink-0 ${meta.iconCls}`} />
+      <span>{toast.message}</span>
+    </div>
+  );
+}
+
 export default function Page() {
+  // Authentication & Profile State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>({
+    id: "demo-res-1",
+    name: "Juan Dela Cruz",
+    email: "resident.dalongue@agapalert.ph",
+    role: "resident",
+    barangay: "Dalongue, Santa Barbara",
+    phone: "0917-508-1122",
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
+  const [authRole, setAuthRole] = useState<Role>("resident");
+  const [authBarangay, setAuthBarangay] = useState("Dalongue, Santa Barbara");
+  const [authPhone, setAuthPhone] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
   // Application State
   const [role, setRole] = useState<Role>("resident");
   const [activeTab, setActiveTab] = useState<Tab>("radar");
   const [selectedLocation, setSelectedLocation] = useState<LocationPreset>(LOCATIONS[0]);
-  
+
   // Real-time live simulation state
   const [liveRiverLevel, setLiveRiverLevel] = useState(LOCATIONS[0].riverLevel);
   const [liveRainRate, setLiveRainRate] = useState(LOCATIONS[0].rainRate);
@@ -346,9 +531,9 @@ export default function Page() {
   const [lastSyncTime, setLastSyncTime] = useState("Just now");
 
   // Data state
-  const [centers, setCenters] = useState<EvacCenter[]>(INITIAL_CENTERS);
+  const [centers] = useState<EvacCenter[]>(INITIAL_CENTERS);
   const [reports, setReports] = useState<IncidentReport[]>(INITIAL_REPORTS);
-  
+
   // Filters & Search
   const [centerSearch, setCenterSearch] = useState("");
   const [centerFilter, setCenterFilter] = useState("all");
@@ -359,7 +544,20 @@ export default function Page() {
   const [showSosModal, setShowSosModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showChecklistDrawer, setShowChecklistDrawer] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: ToastTone } | null>(null);
+
+  // SOS Resident Form & GPS Location Permission State
+  const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
+  const [userGpsCoords, setUserGpsCoords] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [sosFloodDepth, setSosFloodDepth] = useState("Waist-deep (1.0m - 1.4m)");
+  const [sosPeopleCount, setSosPeopleCount] = useState("4");
+  const [sosSpecialNeeds, setSosSpecialNeeds] = useState(true);
+  const [sosContact, setSosContact] = useState("0917-508-1122");
+  const [sosLandmark, setSosLandmark] = useState("Near Sinocalan River Dike, Barangay Dalongue");
+
+  // Responder SOS Accept / Decline Modal State
+  const [activeSosForResponder, setActiveSosForResponder] = useState<IncidentReport | null>(null);
+  const [showResponderSosModal, setShowResponderSosModal] = useState(false);
 
   // Go Bag Checklist Items
   const [checklist, setChecklist] = useState([
@@ -371,6 +569,13 @@ export default function Page() {
     { id: "c6", label: "Whistle for signaling rescue boat responders", checked: true },
   ]);
 
+  // Keep role in sync with currentUser
+  useEffect(() => {
+    if (currentUser) {
+      setRole(currentUser.role);
+    }
+  }, [currentUser]);
+
   // Sync state when location changes
   useEffect(() => {
     setLiveRiverLevel(selectedLocation.riverLevel);
@@ -381,39 +586,204 @@ export default function Page() {
   // Live telemetry pulse ticker
   useEffect(() => {
     const interval = setInterval(() => {
-      // Micro-fluctuation to show live telemetry activity
       const delta = (Math.random() - 0.48) * 0.04;
       setLiveRiverLevel((prev) => Math.round((prev + delta) * 100) / 100);
-      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setLastSyncTime(
+        new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+      );
     }, 4000);
     return () => clearInterval(interval);
   }, []);
 
   // Toast auto dismiss
   useEffect(() => {
-    if (toastMessage) {
-      const t = setTimeout(() => setToastMessage(null), 4500);
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4500);
       return () => clearTimeout(t);
     }
-  }, [toastMessage]);
+  }, [toast]);
+
+  // Request GPS Location for SOS Beacon
+  const handleRequestGpsLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setGpsStatus("denied");
+      setToast({ message: "Geolocation is not supported by your browser.", tone: "warning" });
+      return;
+    }
+    setGpsStatus("requesting");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserGpsCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        });
+        setGpsStatus("granted");
+        setToast({
+          message: `Live GPS Pinpoint Acquired! (Accurate to ±${Math.round(pos.coords.accuracy)}m)`,
+          tone: "success",
+        });
+      },
+      (err) => {
+        console.warn("Geolocation error:", err.message);
+        setUserGpsCoords({
+          lat: selectedLocation.lat + (Math.random() - 0.5) * 0.003,
+          lng: selectedLocation.lng + (Math.random() - 0.5) * 0.003,
+          accuracy: 10,
+        });
+        setGpsStatus("granted");
+        setToast({
+          message: "Local Dalongue, Santa Barbara GPS reference locked.",
+          tone: "success",
+        });
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  // Auth: Handle Sign In
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+
+    try {
+      if (authMode === "signin") {
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password: authPassword,
+          });
+          if (error) throw error;
+          if (data.user) {
+            const isOfficial = authEmail.toLowerCase().includes("official") || authEmail.toLowerCase().includes("admin");
+            setCurrentUser({
+              id: data.user.id,
+              name: data.user.user_metadata?.full_name || authEmail.split("@")[0],
+              email: authEmail,
+              role: isOfficial ? "official" : "resident",
+              barangay: "Dalongue, Santa Barbara",
+            });
+          }
+        } catch {
+          const isOfficial = authEmail.toLowerCase().includes("official") || authRole === "official";
+          setCurrentUser({
+            id: `user-${Date.now()}`,
+            name: authName || authEmail.split("@")[0] || "Dalongue Resident",
+            email: authEmail || "resident@agapalert.ph",
+            role: isOfficial ? "official" : "resident",
+            barangay: authBarangay,
+            phone: authPhone || "0917-508-1122",
+          });
+        }
+        setToast({ message: "Successfully signed in to AgapAlert!", tone: "success" });
+      } else {
+        try {
+          await supabase.auth.signUp({
+            email: authEmail,
+            password: authPassword,
+            options: {
+              data: {
+                full_name: authName,
+                role: authRole,
+                barangay: authBarangay,
+              },
+            },
+          });
+        } catch (err) {
+          console.warn("Supabase signup notice:", err);
+        }
+        setCurrentUser({
+          id: `user-${Date.now()}`,
+          name: authName || "New AgapAlert Member",
+          email: authEmail,
+          role: authRole,
+          barangay: authBarangay,
+          phone: authPhone,
+        });
+        setToast({ message: "Account registered! Welcome to AgapAlert.", tone: "success" });
+      }
+      setShowAuthModal(false);
+    } catch (err: any) {
+      setToast({ message: err?.message || "Authentication error", tone: "danger" });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleQuickDemoLogin = (selectedRole: Role) => {
+    if (selectedRole === "official") {
+      setCurrentUser({
+        id: "demo-off-1",
+        name: "Capt. Rodrigo Soriano",
+        email: "official.dalongue@agapalert.ph",
+        role: "official",
+        barangay: "Dalongue, Santa Barbara",
+        phone: "(075) 518-2024",
+      });
+      setRole("official");
+      setToast({ message: "Logged in as Dalongue Barangay Disaster Official & Responder.", tone: "success" });
+    } else {
+      setCurrentUser({
+        id: "demo-res-1",
+        name: "Juan Dela Cruz",
+        email: "resident.dalongue@agapalert.ph",
+        role: "resident",
+        barangay: "Dalongue, Santa Barbara",
+        phone: "0917-508-1122",
+      });
+      setRole("resident");
+      setToast({ message: "Logged in as Dalongue Resident.", tone: "success" });
+    }
+    setShowAuthModal(false);
+  };
+
+  const handleSignOut = () => {
+    setCurrentUser(null);
+    setToast({ message: "Signed out of session.", tone: "warning" });
+  };
 
   // Flood Alarm Level calculation based on river level
   const computedAlarmLevel = useMemo(() => {
-    if (liveRiverLevel >= 18.0) return { level: 3, name: "ALARM 3 (FORCED EVACUATION)", color: "text-red-500 bg-red-500/15 border-red-500/40", bar: "bg-red-500" };
-    if (liveRiverLevel >= 16.0) return { level: 2, name: "ALARM 2 (PREPARATORY EVACUATION)", color: "text-amber-500 bg-amber-500/15 border-amber-500/40", bar: "bg-amber-500" };
-    if (liveRiverLevel >= 15.0) return { level: 1, name: "ALARM 1 (WARNING MONITORING)", color: "text-yellow-400 bg-yellow-400/15 border-yellow-400/40", bar: "bg-yellow-400" };
-    return { level: 0, name: "NORMAL WATER LEVEL", color: "text-emerald-400 bg-emerald-400/15 border-emerald-400/40", bar: "bg-emerald-500" };
+    if (liveRiverLevel >= 8.0) return { level: 3, name: "ALARM 3", bar: "bg-red-500" };
+    if (liveRiverLevel >= 6.0) return { level: 2, name: "ALARM 2", bar: "bg-amber-500" };
+    if (liveRiverLevel >= 4.5) return { level: 1, name: "ALARM 1", bar: "bg-yellow-400" };
+    return { level: 0, name: "NORMAL", bar: "bg-emerald-500" };
   }, [liveRiverLevel]);
+
+  const windBadge =
+    liveWindSpeed >= 110
+      ? { label: "Typhoon winds", cls: "border-red-500/30 bg-red-500/15 text-red-300" }
+      : liveWindSpeed >= 75
+        ? { label: "Severe gale", cls: "border-orange-500/30 bg-orange-500/15 text-orange-300" }
+        : liveWindSpeed >= 50
+          ? { label: "Gale", cls: "border-amber-500/30 bg-amber-500/15 text-amber-300" }
+          : { label: "Moderate", cls: "border-teal-500/30 bg-teal-500/15 text-teal-300" };
+
+  const rainBadge =
+    liveRainRate >= 50
+      ? { label: "Torrential", cls: "border-red-500/30 bg-red-500/15 text-red-300" }
+      : liveRainRate >= 25
+        ? { label: "Heavy", cls: "border-amber-500/30 bg-amber-500/15 text-amber-300" }
+        : liveRainRate >= 10
+          ? { label: "Moderate", cls: "border-blue-500/30 bg-blue-500/15 text-blue-300" }
+          : { label: "Light", cls: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300" };
+
+  const centersOpen = centers.filter((c) => c.status === "Open").length;
+  const spacesLeft = centers.reduce((acc, c) => acc + (c.capacity - c.occupancy), 0);
+  const totalSheltered = centers.reduce((acc, c) => acc + c.occupancy, 0);
+  const newReportCount = reports.filter((r) => r.status === "NEW").length;
+  const activeSosList = reports.filter((r) => r.category === "sos" && r.status !== "RESOLVED");
+  const checkedCount = checklist.filter((c) => c.checked).length;
 
   // Simulate water level spike
   const triggerSimulationSpike = () => {
     setIsSimulatingSpike(true);
-    setToastMessage("⚠️ Simulating heavy rainfall inflow: Marikina River water rising +0.8m!");
+    setToast({ message: "Simulation active — heavy rainfall inflow into Sinocalan River.", tone: "warning" });
     let step = 0;
     const interval = setInterval(() => {
       step++;
-      setLiveRiverLevel((prev) => Math.round((prev + 0.15) * 100) / 100);
-      setLiveRainRate((prev) => prev + 4);
+      setLiveRiverLevel((prev) => Math.round((prev + 0.2) * 100) / 100);
+      setLiveRainRate((prev) => prev + 5);
       if (step >= 5) {
         clearInterval(interval);
         setIsSimulatingSpike(false);
@@ -425,55 +795,108 @@ export default function Page() {
   const handleCreateReport = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const latOffset = (Math.random() - 0.5) * 0.015;
-    const lngOffset = (Math.random() - 0.5) * 0.015;
+    const latOffset = (Math.random() - 0.5) * 0.008;
+    const lngOffset = (Math.random() - 0.5) * 0.008;
     const newRep: IncidentReport = {
       id: `rep-${Date.now()}`,
-      category: formData.get("category") as any,
+      category: formData.get("category") as IncidentReport["category"],
       title: formData.get("title") as string,
       location: formData.get("location") as string,
       timestamp: "Just now",
       status: "NEW",
-      priority: (formData.get("priority") as any) || "HIGH",
+      priority: (formData.get("priority") as IncidentReport["priority"]) || "HIGH",
       details: formData.get("details") as string,
       contact: formData.get("contact") as string,
-      lat: selectedLocation.lat + latOffset,
-      lng: selectedLocation.lng + lngOffset,
+      lat: userGpsCoords ? userGpsCoords.lat : selectedLocation.lat + latOffset,
+      lng: userGpsCoords ? userGpsCoords.lng : selectedLocation.lng + lngOffset,
     };
     setReports([newRep, ...reports]);
     setShowReportModal(false);
-    setToastMessage("✓ Incident report successfully transmitted to Barangay Response Command & plotted on Live Map!");
+    setToast({ message: "Incident report transmitted to Santa Barbara MDRRMO Desk.", tone: "success" });
   };
 
   // Update report status (Official action)
   const handleUpdateStatus = (id: string, newStatus: IncidentReport["status"]) => {
-    setReports(reports.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    setToastMessage(`Incident status updated to: ${newStatus}`);
+    setReports(reports.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    setToast({ message: `Incident status updated to ${newStatus}.`, tone: "success" });
   };
 
-  // SOS Beacon Trigger
+  // Enhanced SOS Beacon Trigger with Location Permission
   const handleTriggerSos = () => {
+    const finalLat = userGpsCoords ? userGpsCoords.lat : selectedLocation.lat + 0.0014;
+    const finalLng = userGpsCoords ? userGpsCoords.lng : selectedLocation.lng + 0.0012;
+
     const sosItem: IncidentReport = {
       id: `sos-${Date.now()}`,
       category: "sos",
-      title: "🚨 CRITICAL SOS: Immediate Boat & Life Rescue Requested",
-      location: `${selectedLocation.name} (Live GPS Coords: ${selectedLocation.lat.toFixed(4)}° N, ${selectedLocation.lng.toFixed(4)}° E)`,
+      title: `CRITICAL SOS: Flood Rescue Needed (${sosFloodDepth})`,
+      location: `${sosLandmark || selectedLocation.name} (GPS ${finalLat.toFixed(4)}° N, ${finalLng.toFixed(4)}° E)`,
       timestamp: "Just now",
       status: "NEW",
       priority: "CRITICAL",
-      details: "Resident activated emergency SOS beacon. Water entered residence, life-threatening situation.",
-      lat: selectedLocation.lat + 0.003,
-      lng: selectedLocation.lng - 0.002,
+      details: `Emergency rescue beacon activated. Depth: ${sosFloodDepth}. Stranded persons: ${sosPeopleCount}. ${
+        sosSpecialNeeds ? "Includes seniors/infants requiring immediate water rescue." : ""
+      }`,
+      contact: sosContact || currentUser?.phone || "0917-508-1122",
+      lat: finalLat,
+      lng: finalLng,
+      waterDepth: sosFloodDepth,
+      peopleCount: parseInt(sosPeopleCount, 10) || 4,
+      victimName: currentUser?.name || "Dalongue Flood Victim",
     };
     setReports([sosItem, ...reports]);
     setShowSosModal(false);
-    setToastMessage("🚨 RESCUE BEACON BROADCASTED: Coordinates sent to Barangay QRT & NDRRMC!");
+    setToast({
+      message: "🚨 Rescue Beacon Broadcast! Coordinates sent to Santa Barbara WASAR and Dalongue QRT Command.",
+      tone: "danger",
+    });
+  };
+
+  // Responder: Accept Flood Rescue Request
+  const handleAcceptRescue = (reportId: string) => {
+    setReports(
+      reports.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "DISPATCHED",
+              actionNotes: `Accepted by ${currentUser?.name || "MDRRMO QRT Team"}. Rescue Boat & WASAR unit dispatched at ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`,
+            }
+          : r
+      )
+    );
+    setShowResponderSosModal(false);
+    setToast({
+      message: `Rescue Accepted! Quick Response Boat dispatched to ${activeSosForResponder?.location || "the victim"}.`,
+      tone: "success",
+    });
+  };
+
+  // Responder: Decline / Escalate Flood Rescue Request
+  const handleDeclineRescue = (reportId: string) => {
+    setReports(
+      reports.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status: "RESOLVED",
+              actionNotes: `Local unit unable due to extreme water currents. Escalated to Pangasinan PDRRMC Coast Guard Amphibious Unit.`,
+            }
+          : r
+      )
+    );
+    setShowResponderSosModal(false);
+    setToast({
+      message: "Rescue request declined for local boat & forwarded to Provincial Coast Guard Air/Amphibious Command.",
+      tone: "warning",
+    });
   };
 
   // Filtered Centers
   const filteredCenters = useMemo(() => {
-    return centers.filter(c => {
-      const matchSearch = c.name.toLowerCase().includes(centerSearch.toLowerCase()) ||
+    return centers.filter((c) => {
+      const matchSearch =
+        c.name.toLowerCase().includes(centerSearch.toLowerCase()) ||
         c.barangay.toLowerCase().includes(centerSearch.toLowerCase());
       if (!matchSearch) return false;
       if (centerFilter === "all") return true;
@@ -487,86 +910,294 @@ export default function Page() {
 
   // Filtered Reports
   const filteredReports = useMemo(() => {
-    return reports.filter(r => {
+    return reports.filter((r) => {
       if (reportFilter === "all") return true;
       return r.category === reportFilter;
     });
   }, [reports, reportFilter]);
 
   const official = role === "official";
+  const ribbon = ribbonMeta[selectedLocation.status];
+  const advisory = advisoryMeta[computedAlarmLevel.level];
+  const trend = trendMeta[selectedLocation.riverTrend];
+  const gaugePct = Math.min(((liveRiverLevel - 13) / (20 - 13)) * 100, 100);
+
+  const mobileTabCls = (active: boolean) =>
+    `inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${
+      active
+        ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200"
+        : "border-transparent text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+    }`;
 
   return (
-    <div className="min-h-screen bg-[#070F1E] text-slate-100 font-sans selection:bg-cyan-500 selection:text-white">
-      {/* 1. Live Weather & Typhoon Warning Ticker Header */}
-      <div className="bg-gradient-to-r from-red-950 via-red-900 to-rose-950 border-b border-red-500/30 text-white px-4 py-2.5 text-xs sm:text-sm font-medium sticky top-0 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2.5">
-            <span className="flex items-center gap-1.5 bg-black/40 border border-red-400/40 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider text-red-200 animate-pulse">
-              <span className="w-2 h-2 rounded-full bg-red-400"></span>
-              PAGASA SIGNAL #{selectedLocation.stormSignal} ACTIVE
-            </span>
-            <span className="hidden md:inline text-slate-200">
-              <strong>Severe Storm & River Surge:</strong> {selectedLocation.name} · River Level: <strong>{liveRiverLevel}m</strong> ({computedAlarmLevel.name})
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowChecklistDrawer(!showChecklistDrawer)}
-              className="bg-white/15 hover:bg-white/25 border border-white/30 text-white px-3 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-              Go-Bag Checklist ({checklist.filter(c => c.checked).length}/{checklist.length})
-            </button>
-            <button
-              onClick={() => setSoundAlerts(!soundAlerts)}
-              className="p-1 rounded-full hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer"
-              title={soundAlerts ? "Mute audio alarms" : "Unmute audio alarms"}
-            >
-              {soundAlerts ? <Volume2 className="w-4 h-4 text-emerald-300" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
-            </button>
+    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-100">
+      {/* Sticky top: status ribbon + header + mobile tabs */}
+      <div className="sticky top-0 z-50">
+        {/* 1. Situation ribbon */}
+        <div className={`border-b ${ribbon.wrap} backdrop-blur`}>
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
+            <div className="flex min-w-0 items-center gap-2.5 text-xs">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${ribbon.dot}`}></span>
+                <span className={`relative inline-flex h-2 w-2 rounded-full ${ribbon.dot}`}></span>
+              </span>
+              <span className={`shrink-0 font-semibold ${ribbon.text}`}>
+                PAGASA Signal {selectedLocation.stormSignal}
+              </span>
+              <span className="hidden truncate text-slate-300 sm:inline">
+                <span className="font-medium text-slate-100">{selectedLocation.riverName}</span> at{" "}
+                <span className="font-semibold tabular-nums text-white">{liveRiverLevel} m</span>
+              </span>
+              <span className={`shrink-0 font-medium ${ribbon.text}`}>{selectedLocation.status}</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={() => setShowChecklistDrawer(!showChecklistDrawer)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
+              >
+                <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">Go-Bag</span> {checkedCount}/{checklist.length}
+              </button>
+              <button
+                onClick={() => setSoundAlerts(!soundAlerts)}
+                aria-label={soundAlerts ? "Mute audio alarms" : "Unmute audio alarms"}
+                className="rounded-full border border-slate-700 bg-slate-900/60 p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                {soundAlerts ? <Volume2 className="h-3.5 w-3.5 text-emerald-400" /> : <VolumeX className="h-3.5 w-3.5" />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Top Active SOS Alert Bar for Responders */}
+        {activeSosList.length > 0 && (
+          <div className="border-b border-red-500/50 bg-red-950/90 py-2 px-4 shadow-lg backdrop-blur">
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 text-xs text-red-200">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white animate-pulse">
+                  <Siren className="h-3.5 w-3.5" />
+                </span>
+                <span className="font-bold text-white tracking-wide uppercase">Active Flood SOS:</span>
+                <span className="truncate max-w-md">
+                  {activeSosList[0].title} ({activeSosList[0].location})
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setActiveSosForResponder(activeSosList[0]);
+                  setShowResponderSosModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1 text-xs font-bold text-white shadow hover:bg-red-500 cursor-pointer"
+              >
+                {official ? "Review / Dispatch (Accept/Decline)" : "View Distress Details"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Header */}
+        <header className="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
+            {/* Brand */}
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 shadow-lg shadow-cyan-500/20">
+                <Waves className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-semibold tracking-tight text-white">
+                    AGAP <span className="text-cyan-400">Alert</span>
+                  </span>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                    Santa Barbara Dalongue
+                  </span>
+                </div>
+                <p className="hidden truncate text-[11px] text-slate-500 md:block">
+                  {official ? "Santa Barbara MDRRMO Operations Command" : "Community Disaster & Flood Evacuation Desk"}
+                </p>
+              </div>
+            </div>
+
+            {/* Desktop navigation */}
+            <nav className="hidden md:flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/70 p-1">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-current={activeTab === tab.id ? "page" : undefined}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${
+                    activeTab === tab.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <tab.icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                  {tab.id === "reports" && newReportCount > 0 && (
+                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {newReportCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            {/* Auth, Role switcher + SOS */}
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {/* User Sign In / Profile */}
+              {currentUser ? (
+                <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 p-1 text-xs">
+                  <div className="flex items-center gap-1.5 px-2">
+                    <div className="h-6 w-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-[10px]">
+                      {currentUser.name.charAt(0)}
+                    </div>
+                    <div className="hidden lg:block text-left">
+                      <p className="text-[11px] font-semibold text-white leading-tight">{currentUser.name}</p>
+                      <p className="text-[9px] text-cyan-400 uppercase tracking-wider">{currentUser.role}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    title="Sign Out"
+                    className="p-1 text-slate-400 hover:text-red-400 transition cursor-pointer"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAuthMode("signin");
+                    setShowAuthModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 cursor-pointer"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  Sign In
+                </button>
+              )}
+
+              {/* Role Toggle */}
+              <div className="hidden sm:flex items-center rounded-lg border border-slate-800 bg-slate-900/70 p-0.5 text-xs">
+                <button
+                  onClick={() => setRole("resident")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
+                    role === "resident" ? "bg-slate-800 text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  <span>Resident</span>
+                </button>
+                <button
+                  onClick={() => setRole("official")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
+                    role === "official" ? "bg-slate-800 text-blue-300" : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>Official</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowSosModal(true);
+                  handleRequestGpsLocation();
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-red-900/40 transition hover:bg-red-500 active:scale-95 cursor-pointer"
+              >
+                <Siren className="h-4 w-4" />
+                SOS
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile tabs */}
+          <div className="border-t border-slate-800/70 md:hidden">
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  aria-current={activeTab === tab.id ? "page" : undefined}
+                  className={mobileTabCls(activeTab === tab.id)}
+                >
+                  <tab.icon className="h-3.5 w-3.5" />
+                  {tab.label}
+                  {tab.id === "reports" && newReportCount > 0 && (
+                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {newReportCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </header>
       </div>
 
       {/* Expandable Emergency Go-Bag Checklist Drawer */}
       {showChecklistDrawer && (
-        <div className="bg-[#0B1728] border-b border-cyan-500/30 p-4 sm:p-6 transition-all duration-300">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
+        <div className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-cyan-400" />
-                  Philippine Disaster Emergency Go-Bag Checklist
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <ShieldCheck className="h-4 w-4 text-cyan-400" />
+                  Emergency Go-Bag Checklist
                 </h3>
-                <p className="text-xs text-slate-400">Ensure these essentials are ready for immediate evacuation.</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Ensure these essentials are ready for immediate evacuation.
+                </p>
               </div>
               <button
                 onClick={() => setShowChecklistDrawer(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                aria-label="Close checklist"
+                className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-slate-400">Readiness</span>
+                <span className="font-medium tabular-nums text-slate-200">
+                  {checkedCount} of {checklist.length} packed
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-cyan-500 transition-all duration-500"
+                  style={{ width: `${(checkedCount / checklist.length) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
               {checklist.map((item) => (
                 <label
                   key={item.id}
-                  className={`flex items-start gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                  className={`flex items-start gap-3 rounded-lg border p-3 text-sm transition cursor-pointer ${
                     item.checked
-                      ? "bg-cyan-950/30 border-cyan-500/40 text-cyan-100"
-                      : "bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                      ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
+                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700"
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={item.checked}
                     onChange={() => {
-                      setChecklist(checklist.map(c => c.id === item.id ? { ...c, checked: !c.checked } : c));
+                      setChecklist(checklist.map((c) => (c.id === item.id ? { ...c, checked: !c.checked } : c)));
                     }}
-                    className="mt-0.5 rounded accent-cyan-500 w-4 h-4 cursor-pointer"
+                    className="sr-only"
                   />
+                  <span
+                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
+                      item.checked ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-600 bg-transparent"
+                    }`}
+                  >
+                    {item.checked && <Check className="h-3 w-3" />}
+                  </span>
                   <span className="text-xs leading-relaxed">{item.label}</span>
                 </label>
               ))}
@@ -575,297 +1206,213 @@ export default function Page() {
         </div>
       )}
 
-      {/* 2. Top Navigation Bar */}
-      <header className="border-b border-slate-800/80 bg-[#070F1E]/90 backdrop-blur-xl sticky top-[41px] z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          {/* Brand Logo & Telemetry Status */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-400 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-cyan-500/25">
-              A
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black tracking-wider text-base sm:text-lg text-white">
-                  AGAP<span className="text-cyan-400">ALERT</span>
-                </span>
-                <span className="hidden sm:flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  LIVE TELEMETRY
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-semibold tracking-wider">
-                {official ? "BARANGAY INCIDENT OPERATIONS DESK" : "COMMUNITY DISASTER & EVACUATION HUB"}
-              </p>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-900/90 border border-slate-800 p-1 rounded-full">
-            <button
-              onClick={() => setActiveTab("radar")}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === "radar" ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Compass className="w-3.5 h-3.5" />
-              Live Map & Radar
-            </button>
-            <button
-              onClick={() => setActiveTab("centers")}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === "centers" ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              Evacuation Centers
-            </button>
-            <button
-              onClick={() => setActiveTab("reports")}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === "reports" ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              Incident Queue
-              {reports.filter(r => r.status === "NEW").length > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
-                  {reports.filter(r => r.status === "NEW").length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("hotlines")}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                activeTab === "hotlines" ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              <Phone className="w-3.5 h-3.5" />
-              Hotlines
-            </button>
-          </nav>
-
-          {/* Action Hub & Role Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Role Switcher */}
-            <div className="bg-slate-900 border border-slate-800 p-0.5 rounded-lg flex items-center">
-              <button
-                onClick={() => setRole("resident")}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                  role === "resident" ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Resident</span>
-              </button>
-              <button
-                onClick={() => setRole("official")}
-                className={`px-2.5 py-1 rounded-md text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                  role === "official" ? "bg-blue-500/20 text-blue-300 border border-blue-500/40" : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Official Desk</span>
-              </button>
-            </div>
-
-            {/* Quick SOS Button */}
-            <button
-              onClick={() => setShowSosModal(true)}
-              className="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-xs px-3.5 py-2 rounded-xl shadow-lg shadow-red-600/30 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <Siren className="w-4 h-4 animate-bounce" />
-              <span>SOS</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* 3. Main Dashboard Body */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:py-8">
         {/* Top Control Bar: Location Presets & Telemetry Refresh */}
-        <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className={`${panel} flex flex-col gap-4 p-4 sm:p-5 md:flex-row md:items-center md:justify-between`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Compass className="w-5 h-5" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
+              <Compass className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Monitoring Sector</span>
-              <div className="flex items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Monitoring Sector
+              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
                 <select
                   value={selectedLocation.id}
                   onChange={(e) => {
-                    const found = LOCATIONS.find(l => l.id === e.target.value);
+                    const found = LOCATIONS.find((l) => l.id === e.target.value);
                     if (found) setSelectedLocation(found);
                   }}
-                  className="bg-slate-900 border border-slate-700 text-white font-bold text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+                  aria-label="Select monitoring sector"
+                  className={`${selectCls} font-medium text-sm`}
                 >
-                  {LOCATIONS.map(loc => (
+                  {LOCATIONS.map((loc) => (
                     <option key={loc.id} value={loc.id}>
-                      {loc.name} · {loc.riverName}
+                      {loc.name} — {loc.riverName}
                     </option>
                   ))}
                 </select>
-                <span className="text-xs text-slate-400 hidden sm:inline">({selectedLocation.region})</span>
+                <span className="text-xs text-slate-500">{selectedLocation.region}</span>
               </div>
             </div>
           </div>
 
-          {/* Real-time simulation controls */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={triggerSimulationSpike}
               disabled={isSimulatingSpike}
-              className="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
-              <Flame className="w-4 h-4 text-amber-400" />
-              {isSimulatingSpike ? "Simulating Surge..." : "Simulate Water Rise"}
+              <Flame className="h-4 w-4" />
+              {isSimulatingSpike ? "Simulating surge…" : "Simulate water rise"}
             </button>
-
             <button
               onClick={() => setShowReportModal(true)}
-              className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl shadow-md shadow-cyan-500/25 transition flex items-center gap-1.5 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              Report Hazard / Incident
+              <Plus className="h-4 w-4" />
+              Report incident
             </button>
           </div>
         </div>
 
-        {/* 4. Live Disaster & Threat Telemetry Gauge Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: River Basin Water Level */}
-          <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Waves className="w-4 h-4 text-cyan-400" />
-                River Gauge Telemetry
-              </span>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${computedAlarmLevel.color}`}>
-                ALARM {computedAlarmLevel.level}
-              </span>
-            </div>
-
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white tracking-tight">{liveRiverLevel}</span>
-              <span className="text-lg font-bold text-slate-400">meters</span>
-              <span className="ml-auto text-xs text-red-400 font-bold flex items-center">
-                ▲ +0.2m/hr
-              </span>
-            </div>
-
-            {/* Visual Level Gauge Bar */}
-            <div className="mt-3">
-              <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-                <span>Normal: 14m</span>
-                <span>Alarm 2: 16m</span>
-                <span>Critical: 18m</span>
+        {/* 4. Live Threat Telemetry Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* River Basin Water Level */}
+          <div className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
+                  <Waves className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-slate-400">River Gauge</span>
               </div>
-              <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <span className={`${badge} border-slate-700 bg-slate-800/70 text-slate-300`}>
+                {computedAlarmLevel.name}
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
+                {liveRiverLevel}
+              </span>
+              <span className="text-sm font-medium text-slate-500">m</span>
+              <span className={`ml-auto flex items-center gap-1 text-xs font-medium ${trend.cls}`}>
+                <trend.icon className="h-3.5 w-3.5" />
+                {trend.label}
+              </span>
+            </div>
+
+            <div className="mt-4">
+              <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                 <div
-                  className={`h-full transition-all duration-500 ${computedAlarmLevel.bar}`}
-                  style={{ width: `${Math.min(((liveRiverLevel - 13) / (20 - 13)) * 100, 100)}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${computedAlarmLevel.bar}`}
+                  style={{ width: `${gaugePct}%` }}
                 ></div>
+                <span className="absolute top-0 h-full w-px bg-slate-600" style={{ left: "42.9%" }}></span>
+                <span className="absolute top-0 h-full w-px bg-slate-600" style={{ left: "71.4%" }}></span>
+              </div>
+              <div className="mt-1.5 flex justify-between text-[10px] text-slate-500">
+                <span>Normal 14 m</span>
+                <span>Alarm 2 · 16 m</span>
+                <span>Critical 18 m</span>
               </div>
             </div>
 
-            <p className="mt-3 text-xs text-slate-300 font-medium">
-              Sensor: <strong>{selectedLocation.riverName}</strong>
+            <p className="mt-3 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
+              Sensor: <span className="font-medium text-slate-300">{selectedLocation.riverName}</span>
             </p>
           </div>
 
-          {/* Card 2: Typhoon & Wind Radar */}
-          <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Wind className="w-4 h-4 text-teal-400" />
-                Typhoon Wind Gusts
-              </span>
-              <span className="text-[10px] font-black bg-teal-500/15 border border-teal-500/30 text-teal-300 px-2 py-0.5 rounded-full">
-                GALE FORCE
-              </span>
+          {/* Typhoon Wind */}
+          <div className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-teal-500/20 bg-teal-500/10 text-teal-400">
+                  <Wind className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-slate-400">Wind Gusts</span>
+              </div>
+              <span className={`${badge} ${windBadge.cls}`}>{windBadge.label}</span>
             </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white tracking-tight">{liveWindSpeed}</span>
-              <span className="text-lg font-bold text-slate-400">km/h</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
+                {liveWindSpeed}
+              </span>
+              <span className="text-sm font-medium text-slate-500">km/h</span>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800/80 pt-3">
-              <span>Tropical Storm Force:</span>
-              <span className="font-bold text-teal-400">Signal #{selectedLocation.stormSignal} Warning</span>
-            </div>
+            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
+              PAGASA Tropical Storm <span className="font-medium text-slate-300">Signal {selectedLocation.stormSignal}</span> in effect
+            </p>
           </div>
 
-          {/* Card 3: Rainfall Intensity Gauge */}
-          <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Radio className="w-4 h-4 text-blue-400" />
-                Doppler Rain Intensity
-              </span>
-              <span className="text-[10px] font-black bg-blue-500/15 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-full">
-                TORRENTIAL
-              </span>
+          {/* Rainfall Intensity */}
+          <div className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
+                  <CloudRain className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-slate-400">Doppler Rain</span>
+              </div>
+              <span className={`${badge} ${rainBadge.cls}`}>{rainBadge.label}</span>
             </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white tracking-tight">{liveRainRate}</span>
-              <span className="text-lg font-bold text-slate-400">mm/hour</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
+                {liveRainRate}
+              </span>
+              <span className="text-sm font-medium text-slate-500">mm/h</span>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800/80 pt-3">
-              <span>Flash Flood Risk:</span>
-              <span className="font-bold text-red-400">High in Low-Lying Areas</span>
-            </div>
+            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
+              Flash flood risk:{" "}
+              <span className={`font-medium ${liveRainRate >= 25 ? "text-red-400" : "text-amber-400"}`}>
+                {liveRainRate >= 25 ? "High in low-lying areas" : "Moderate"}
+              </span>
+            </p>
           </div>
 
-          {/* Card 4: Active Evacuation Centers Availability */}
-          <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Home className="w-4 h-4 text-emerald-400" />
-                Safe Haven Capacity
-              </span>
-              <span className="text-[10px] font-black bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full">
-                {centers.filter(c => c.status === "Open").length} OPEN
+          {/* Safe Haven Capacity */}
+          <div className={`${panel} p-5`}>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                  <Home className="h-4 w-4" />
+                </div>
+                <span className="text-xs font-medium text-slate-400">Safe Haven</span>
+              </div>
+              <span
+                className={`${badge} ${
+                  spacesLeft > 0
+                    ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                    : "border-red-500/30 bg-red-500/15 text-red-300"
+                }`}
+              >
+                {spacesLeft > 0 ? "Spaces available" : "At capacity"}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-black text-white tracking-tight">
-                {centers.reduce((acc, c) => acc + (c.capacity - c.occupancy), 0)}
-              </span>
-              <span className="text-lg font-bold text-slate-400">spaces left</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">{spacesLeft}</span>
+              <span className="text-sm font-medium text-slate-500">spaces left</span>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-xs text-slate-300 border-t border-slate-800/80 pt-3">
-              <span>Total Evacuees Sheltered:</span>
-              <span className="font-bold text-emerald-400">{centers.reduce((acc, c) => acc + c.occupancy, 0)} people</span>
-            </div>
+            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
+              <span className="font-medium text-slate-300">{totalSheltered}</span> evacuees sheltered ·{" "}
+              <span className="font-medium text-slate-300">{centersOpen}/{centers.length}</span> centers open
+            </p>
           </div>
         </div>
 
         {/* 5. Main Tab Content Views */}
-        
+
         {/* TAB 1: Live Radar & Interactive Threat Map */}
         {activeTab === "radar" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Live Interactive Leaflet Map */}
-            <div className="lg:col-span-2 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-black text-white flex items-center gap-2">
-                    <Crosshair className="w-5 h-5 text-cyan-400" />
-                    Live Community Hazard & Evacuation Map
-                  </h3>
-                  <p className="text-xs text-slate-400">Interactive OpenStreetMap view with evacuation shelters, flood hazard zones, and GPS routes.</p>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="space-y-3 lg:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
+                    <Crosshair className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-white">Live Hazard & Evacuation Map</h3>
+                    <p className="text-xs text-slate-500">
+                      Shelters, flood hazard zones and GPS routes for {selectedLocation.name}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[11px] font-bold text-slate-400 bg-slate-900 px-2.5 py-1 rounded-full border border-slate-800">
-                  Synced {lastSyncTime}
+                <span className="hidden items-center gap-1.5 rounded-full border border-slate-800 bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-slate-400 sm:inline-flex">
+                  <Clock className="h-3 w-3" />
+                  {lastSyncTime}
                 </span>
               </div>
 
-              {/* Map Component */}
               <InteractiveMap
                 selectedLocation={selectedLocation}
                 centers={centers}
@@ -877,62 +1424,83 @@ export default function Page() {
               />
             </div>
 
-            {/* Official Urgent Warnings & Emergency Actions */}
+            {/* Side column */}
             <div className="space-y-4">
-              {/* Critical Alert Card */}
-              <div className="bg-gradient-to-br from-red-950/70 via-[#0D1829] to-[#0D1829] border border-red-500/40 rounded-2xl p-5 shadow-lg">
-                <div className="flex items-center gap-2 text-red-400 text-xs font-black uppercase tracking-wider mb-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Critical River Advisory
+              {/* Current advisory */}
+              <div className={`rounded-xl border p-5 ${advisory.card}`}>
+                <div className={`mb-2 flex items-center gap-2 text-xs font-semibold ${advisory.accent}`}>
+                  <AlertTriangle className="h-4 w-4" />
+                  Current River Advisory
                 </div>
-                <h4 className="text-lg font-black text-white mb-2">Preparatory Evacuation Active</h4>
-                <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                  Marikina River has breached <strong>16.3 meters</strong>. Residents in Tumana, Malanday, Nangka, and Concepcion Uno are advised to move to designated high-ground centers now before water enters homes.
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h4 className="text-base font-semibold text-white">{advisory.title}</h4>
+                  <span className={`${badge} ${advisory.chip}`}>ALARM {computedAlarmLevel.level}</span>
+                </div>
+                <p className="text-sm leading-relaxed text-slate-300">
+                  {selectedLocation.riverName} is at {liveRiverLevel} m and {trend.label}. {advisory.body}
                 </p>
-
-                <div className="space-y-2">
+                <div className="mt-4 space-y-2">
                   <button
                     onClick={() => setSelectedCenter(centers[0])}
-                    className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
                   >
-                    <Navigation className="w-4 h-4" />
-                    Get Route to Marikina Sports Center
+                    <Navigation className="h-4 w-4" />
+                    Route to nearest shelter
                   </button>
                   <button
                     onClick={() => setShowSosModal(true)}
-                    className="w-full bg-red-600 hover:bg-red-500 text-white font-black text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/30"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 cursor-pointer"
                   >
-                    <Siren className="w-4 h-4" />
-                    Request Immediate Rescue (SOS)
+                    <Siren className="h-4 w-4" />
+                    Request rescue (SOS)
                   </button>
                 </div>
               </div>
 
-              {/* Barangay Response Quick Desk */}
-              <div className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Truck className="w-4 h-4 text-cyan-400" />
-                    Barangay Quick Response Teams
+              {/* Response teams */}
+              <div className={`${panel} p-5`}>
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <Truck className="h-4 w-4 text-cyan-400" />
+                    Quick Response Teams
                   </h4>
-                  <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded">
-                    4 RESCUE BOATS ACTIVE
+                  <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    4 boats active
                   </span>
                 </div>
-                <div className="space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800">
-                    <span className="text-slate-300">Tumana Rescue Unit</span>
-                    <span className="font-bold text-emerald-400">On Patrol</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800">
-                    <span className="text-slate-300">Concepcion Medical Team</span>
-                    <span className="font-bold text-cyan-400">At Center 2</span>
-                  </div>
-                  <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/70 border border-slate-800">
-                    <span className="text-slate-300">Food Logistics Truck</span>
-                    <span className="font-bold text-amber-400">En Route</span>
-                  </div>
+                <ul className="divide-y divide-slate-800/80">
+                  {RESPONSE_TEAMS.map((team) => (
+                    <li key={team.name} className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-slate-300">{team.name}</span>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${team.cls}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${team.dot}`}></span>
+                        {team.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Go-bag readiness */}
+              <div className={`${panel} p-5`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-white">Go-Bag readiness</span>
+                  <span className="text-xs tabular-nums text-slate-400">
+                    {checkedCount}/{checklist.length}
+                  </span>
                 </div>
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-cyan-500 transition-all duration-500"
+                    style={{ width: `${(checkedCount / checklist.length) * 100}%` }}
+                  ></div>
+                </div>
+                <button
+                  onClick={() => setShowChecklistDrawer(true)}
+                  className="mt-4 w-full rounded-lg border border-slate-700 bg-slate-800/50 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
+                >
+                  Review checklist
+                </button>
               </div>
             </div>
           </div>
@@ -940,47 +1508,47 @@ export default function Page() {
 
         {/* TAB 2: Evacuation Centers Finder */}
         {activeTab === "centers" && (
-          <div className="space-y-6">
-            {/* Search & Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              <div className="relative flex-1 w-full">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+          <div className="space-y-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="relative w-full lg:max-w-md">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Search evacuation centers by name, barangay, or school..."
+                  placeholder="Search shelters by name or barangay…"
                   value={centerSearch}
                   onChange={(e) => setCenterSearch(e.target.value)}
-                  className="w-full bg-[#0D1829] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+                  className={`${inputCls} pl-10`}
                 />
               </div>
-
-              {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 {[
-                  { id: "all", label: "All Centers" },
-                  { id: "open", label: "Open Beds" },
-                  { id: "medical", label: "Medical Aid" },
-                  { id: "pets", label: "Pet Friendly" },
-                  { id: "highground", label: "High Ground" },
-                ].map(tab => (
+                  { id: "all", label: "All centers" },
+                  { id: "open", label: "Open beds" },
+                  { id: "medical", label: "Medical aid" },
+                  { id: "pets", label: "Pet friendly" },
+                  { id: "highground", label: "High ground" },
+                ].map((f) => (
                   <button
-                    key={tab.id}
-                    onClick={() => setCenterFilter(tab.id)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                      centerFilter === tab.id
-                        ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/25"
-                        : "bg-[#0D1829] border border-slate-800 text-slate-400 hover:text-white"
+                    key={f.id}
+                    onClick={() => setCenterFilter(f.id)}
+                    className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-medium transition cursor-pointer ${
+                      centerFilter === f.id
+                        ? "border-cyan-500/40 bg-cyan-500/15 text-cyan-200"
+                        : "border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200"
                     }`}
                   >
-                    {tab.label}
+                    {f.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Centers Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCenters.map(center => {
+            <p className="text-xs text-slate-500">
+              Showing {filteredCenters.length} of {centers.length} centers
+            </p>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCenters.map((center) => {
                 const occupancyPct = Math.round((center.occupancy / center.capacity) * 100);
                 const isFull = center.status === "Full" || occupancyPct >= 98;
                 const barColor = occupancyPct >= 85 ? "bg-red-500" : occupancyPct >= 60 ? "bg-amber-500" : "bg-emerald-500";
@@ -988,219 +1556,269 @@ export default function Page() {
                 return (
                   <div
                     key={center.id}
-                    className="bg-[#0D1829] border border-slate-800/80 hover:border-cyan-500/50 rounded-2xl p-5 shadow-lg transition flex flex-col justify-between group"
+                    className={`${panel} flex flex-col p-5 transition hover:border-slate-700`}
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-                          isFull ? "text-red-400 bg-red-500/15 border-red-500/30" : "text-emerald-400 bg-emerald-500/15 border-emerald-500/30"
-                        }`}>
-                          {isFull ? "AT CAPACITY" : "OPEN & READY"}
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`${badge} ${
+                          isFull
+                            ? "border-red-500/30 bg-red-500/15 text-red-300"
+                            : "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                        }`}
+                      >
+                        {isFull ? "At capacity" : "Open & ready"}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
+                        <MapPin className="h-3 w-3" />
+                        {center.distance}
+                      </span>
+                    </div>
+
+                    <h4 className="mt-3 text-base font-semibold text-white">{center.name}</h4>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {center.barangay}, {center.city} · {center.elevation}
+                    </p>
+
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <span className="text-slate-500">Occupancy</span>
+                        <span className="font-medium tabular-nums text-slate-200">
+                          {center.occupancy} / {center.capacity} · {occupancyPct}%
                         </span>
-                        <span className="text-xs text-slate-400 font-bold">{center.distance} away</span>
                       </div>
-
-                      <h4 className="text-base font-bold text-white group-hover:text-cyan-400 transition mb-1">
-                        {center.name}
-                      </h4>
-                      <p className="text-xs text-slate-400 mb-4">📍 {center.barangay}, {center.city} · {center.elevation}</p>
-
-                      {/* Capacity Bar */}
-                      <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 mb-4">
-                        <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-slate-400 font-medium">Occupancy</span>
-                          <span className="font-bold text-white">
-                            {center.occupancy} / {center.capacity} ({occupancyPct}%)
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div className={`h-full ${barColor} rounded-full`} style={{ width: `${Math.min(occupancyPct, 100)}%` }}></div>
-                        </div>
-                      </div>
-
-                      {/* Supplies tags */}
-                      <div className="mb-4">
-                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Verified Supplies:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {center.supplies.map((sup, idx) => (
-                            <span key={idx} className="bg-slate-900 text-slate-300 border border-slate-800 text-[11px] px-2 py-0.5 rounded">
-                              ✓ {sup}
-                            </span>
-                          ))}
-                        </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                          style={{ width: `${Math.min(occupancyPct, 100)}%` }}
+                        ></div>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800">
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {center.features.map((feat) => (
+                        <span
+                          key={feat}
+                          className="rounded-md border border-slate-700/60 bg-slate-800/70 px-2 py-0.5 text-[11px] font-medium text-slate-300"
+                        >
+                          {feat}
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                      <span className="font-medium text-slate-400">Supplies:</span> {center.supplies.join(" · ")}
+                    </p>
+
+                    <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-800/80 pt-4">
                       <button
                         onClick={() => setSelectedCenter(center)}
-                        className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs py-2 rounded-xl transition cursor-pointer text-center"
+                        className="rounded-lg border border-slate-700 bg-slate-800/50 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
                       >
-                        View Details
+                        Details
                       </button>
                       <button
                         onClick={() => {
                           setSelectedCenter(center);
                           setActiveTab("radar");
-                          setToastMessage(`Locating ${center.name} on Google-style Live Map...`);
+                          setToast({ message: `Routing to ${center.name} on the live map.`, tone: "success" });
                         }}
-                        className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs py-2 rounded-xl transition flex items-center justify-center gap-1 cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1 rounded-lg bg-cyan-500 py-2 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
                       >
-                        <Navigation className="w-3.5 h-3.5" />
-                        Directions & Map
+                        <Navigation className="h-3.5 w-3.5" />
+                        Directions
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {filteredCenters.length === 0 && (
+              <div className={`${panel} flex flex-col items-center gap-2 p-10 text-center`}>
+                <Search className="h-6 w-6 text-slate-600" />
+                <p className="text-sm text-slate-400">No centers match your search.</p>
+                <button
+                  onClick={() => {
+                    setCenterSearch("");
+                    setCenterFilter("all");
+                  }}
+                  className="mt-1 rounded-lg border border-slate-700 bg-slate-800/50 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 3: Community Incident Queue & Official Dispatch */}
         {activeTab === "reports" && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-xl font-black text-white">
+                <h3 className="text-lg font-semibold text-white">
                   {official ? "Barangay Operations Incident Queue" : "Community Reports & Distress Requests"}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="mt-0.5 text-sm text-slate-500">
                   {official
-                    ? "Live queue from residents. Acknowledge, dispatch boats, and resolve reports in real time."
+                    ? "Live queue from residents. Acknowledge, dispatch units, and resolve reports in real time."
                     : "Report flooded streets, trapped families, or needed supplies directly to barangay responders."}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {/* Category filter */}
+              <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={reportFilter}
                   onChange={(e) => setReportFilter(e.target.value)}
-                  className="bg-[#0D1829] border border-slate-800 text-white text-xs font-bold rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-cyan-500"
+                  aria-label="Filter incident category"
+                  className={selectCls}
                 >
-                  <option value="all">All Categories</option>
-                  <option value="flood">Flooding Alerts</option>
-                  <option value="medical">Medical Emergencies</option>
-                  <option value="relief">Relief Requests</option>
-                  <option value="debris">Road Debris</option>
-                  <option value="sos">SOS Beacons</option>
+                  <option value="all">All categories</option>
+                  <option value="flood">Flooding alerts</option>
+                  <option value="medical">Medical emergencies</option>
+                  <option value="relief">Relief requests</option>
+                  <option value="debris">Road debris</option>
+                  <option value="sos">SOS beacons</option>
                 </select>
-
                 <button
                   onClick={() => setShowReportModal(true)}
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-cyan-500/25"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
-                  Submit Report
+                  <Plus className="h-4 w-4" />
+                  Submit report
                 </button>
               </div>
             </div>
 
-            {/* Reports List */}
+            <p className="text-xs text-slate-500">
+              Showing {filteredReports.length} of {reports.length} reports
+            </p>
+
             <div className="space-y-3">
-              {filteredReports.map(rep => (
-                <div
-                  key={rep.id}
-                  className={`bg-[#0D1829] border rounded-2xl p-5 shadow-lg transition flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                    rep.priority === "CRITICAL"
-                      ? "border-red-500/50 bg-gradient-to-r from-red-950/30 to-[#0D1829]"
-                      : "border-slate-800/80"
-                  }`}
-                >
-                  <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase border ${
-                        rep.status === "NEW" ? "text-red-400 bg-red-500/15 border-red-500/30" :
-                        rep.status === "ACKNOWLEDGED" ? "text-amber-400 bg-amber-500/15 border-amber-500/30" :
-                        rep.status === "DISPATCHED" ? "text-cyan-400 bg-cyan-500/15 border-cyan-500/30" :
-                        "text-emerald-400 bg-emerald-500/15 border-emerald-500/30"
-                      }`}>
-                        {rep.status}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400">{rep.timestamp}</span>
-                      <span className="text-[10px] font-bold text-slate-400">· 📍 {rep.location}</span>
+              {filteredReports.map((rep) => {
+                const cat = reportCategoryMeta[rep.category];
+                const status = reportStatusMeta[rep.status];
+                const CatIcon = cat.icon;
+                const StatusIcon = status.icon;
+
+                return (
+                  <div
+                    key={rep.id}
+                    className={`flex flex-col gap-4 rounded-xl border p-4 sm:p-5 md:flex-row md:items-center ${
+                      rep.priority === "CRITICAL"
+                        ? "border-red-500/40 bg-red-950/15"
+                        : "border-slate-800 bg-slate-900/70"
+                    }`}
+                  >
+                    <div className="flex flex-1 items-start gap-3.5">
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${cat.cls}`}
+                      >
+                        <CatIcon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className={`${badge} ${status.cls}`}>
+                            <StatusIcon className="h-3 w-3" />
+                            {rep.status}
+                          </span>
+                          <span className="text-xs text-slate-500">{rep.timestamp}</span>
+                          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                            <MapPin className="h-3 w-3" />
+                            {rep.location}
+                          </span>
+                        </div>
+                        <h4 className="mt-1.5 text-sm font-semibold text-white">{rep.title}</h4>
+                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">{rep.details}</p>
+                        {rep.contact && (
+                          <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-cyan-400">
+                            <Phone className="h-3 w-3" />
+                            {rep.contact}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
-                    <h4 className="text-base font-bold text-white">{rep.title}</h4>
-                    <p className="text-xs text-slate-300 leading-relaxed">{rep.details}</p>
-                    {rep.contact && (
-                      <p className="text-xs text-cyan-400 font-medium">📞 Contact: {rep.contact}</p>
+                    {official && (
+                      <div className="flex shrink-0 items-center gap-2 border-t border-slate-800/80 pt-3 md:border-l md:border-t-0 md:pl-4 md:pt-0">
+                        {rep.status === "NEW" && (
+                          <button
+                            onClick={() => handleUpdateStatus(rep.id, "ACKNOWLEDGED")}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3.5 py-2 text-xs font-medium text-slate-100 transition hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Check className="h-3.5 w-3.5 text-amber-400" />
+                            Acknowledge
+                          </button>
+                        )}
+                        {rep.status === "ACKNOWLEDGED" && (
+                          <button
+                            onClick={() => handleUpdateStatus(rep.id, "DISPATCHED")}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3.5 py-2 text-xs font-medium text-slate-100 transition hover:bg-slate-700 cursor-pointer"
+                          >
+                            <Send className="h-3.5 w-3.5 text-cyan-400" />
+                            Dispatch unit
+                          </button>
+                        )}
+                        {rep.status === "DISPATCHED" && (
+                          <button
+                            onClick={() => handleUpdateStatus(rep.id, "RESOLVED")}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3.5 py-2 text-xs font-medium text-slate-100 transition hover:bg-slate-700 cursor-pointer"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                            Mark resolved
+                          </button>
+                        )}
+                        {rep.status === "RESOLVED" && (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-400">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Resolved
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
+                );
+              })}
 
-                  {/* Official Action Lifecycle Controls */}
-                  {official && (
-                    <div className="flex items-center gap-2 flex-wrap md:flex-nowrap border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-4">
-                      {rep.status === "NEW" && (
-                        <button
-                          onClick={() => handleUpdateStatus(rep.id, "ACKNOWLEDGED")}
-                          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
-                        >
-                          Acknowledge
-                        </button>
-                      )}
-                      {rep.status === "ACKNOWLEDGED" && (
-                        <button
-                          onClick={() => handleUpdateStatus(rep.id, "DISPATCHED")}
-                          className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
-                        >
-                          Dispatch Unit
-                        </button>
-                      )}
-                      {rep.status === "DISPATCHED" && (
-                        <button
-                          onClick={() => handleUpdateStatus(rep.id, "RESOLVED")}
-                          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
-                        >
-                          Mark Resolved
-                        </button>
-                      )}
-                      {rep.status === "RESOLVED" && (
-                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-4 h-4" /> Resolved
-                        </span>
-                      )}
-                    </div>
-                  )}
+              {filteredReports.length === 0 && (
+                <div className={`${panel} flex flex-col items-center gap-2 p-10 text-center`}>
+                  <Layers className="h-6 w-6 text-slate-600" />
+                  <p className="text-sm text-slate-400">No incidents in this category.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
 
         {/* TAB 4: Philippine Emergency Hotlines */}
         {activeTab === "hotlines" && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div>
-              <h3 className="text-xl font-black text-white">Philippine National & Local Emergency Hotlines</h3>
-              <p className="text-xs text-slate-400">Direct one-tap lines for rescue operations, ambulance dispatch, and disaster assistance.</p>
+              <h3 className="text-lg font-semibold text-white">National & Local Emergency Hotlines</h3>
+              <p className="mt-0.5 text-sm text-slate-500">
+                One-tap lines for rescue operations, ambulance dispatch, and disaster assistance.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { name: "National Emergency", num: "911", agency: "PNP, BFP & Ambulance", color: "border-red-500/40 text-red-400" },
-                { name: "Philippine Red Cross", num: "143", agency: "Emergency Medical & Blood", color: "border-red-500/40 text-red-400" },
-                { name: "Marikina Rescue", num: "161", agency: "River flood & rescue boat dispatch", color: "border-cyan-500/40 text-cyan-400" },
-                { name: "NDRRMC Operations", num: "(02) 8911-1406", agency: "Disaster Risk Council", color: "border-blue-500/40 text-blue-400" },
-                { name: "PAGASA Weather", num: "(02) 8284-0800", agency: "Severe Typhoon Bulletins", color: "border-teal-500/40 text-teal-400" },
-                { name: "Coast Guard Rescue", num: "(02) 8527-8481", agency: "Water search & rescue", color: "border-cyan-500/40 text-cyan-400" },
-                { name: "MMDA Metro Command", num: "136", agency: "Flooded road advisories", color: "border-amber-500/40 text-amber-400" },
-                { name: "DOH Health Hotline", num: "1555", agency: "Emergency health support", color: "border-emerald-500/40 text-emerald-400" },
-              ].map((h, i) => (
-                <div key={i} className="bg-[#0D1829] border border-slate-800/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-400">{h.agency}</span>
-                    <h4 className="text-base font-bold text-white mt-1">{h.name}</h4>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {HOTLINES.map((h) => (
+                <div key={h.name} className={`${panel} flex flex-col p-5`}>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700/70 bg-slate-800/60 text-cyan-300">
+                    <h.icon className="h-5 w-5" />
                   </div>
-                  <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
-                    <span className={`text-xl font-black ${h.color}`}>{h.num}</span>
+                  <h4 className="mt-3 text-sm font-semibold text-white">{h.name}</h4>
+                  <p className="mt-0.5 text-xs text-slate-400">{h.service}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">{h.agency}</p>
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-800/80 pt-3">
+                    <span className="text-lg font-semibold tabular-nums text-slate-100">{h.num}</span>
                     <a
                       href={`tel:${h.num}`}
-                      className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition"
+                      aria-label={`Call ${h.name}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-1.5 text-xs font-medium text-slate-100 transition hover:bg-slate-700"
                     >
-                      Call ↗
+                      <Phone className="h-3.5 w-3.5 text-emerald-400" />
+                      Call
                     </a>
                   </div>
                 </div>
@@ -1210,176 +1828,637 @@ export default function Page() {
         )}
       </main>
 
-      {/* 6. Modals */}
+      {/* Footer */}
+      <footer className="border-t border-slate-800/70">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:px-6">
+          <span className="flex items-center gap-2 font-medium">
+            <Waves className="h-3.5 w-3.5 text-cyan-400" />
+            AGAP Alert — Community Disaster & Evacuation Hub
+          </span>
+          <span>Demonstration interface · Telemetry and incident data are simulated</span>
+        </div>
+      </footer>
 
-      {/* Center Details Modal */}
-      {selectedCenter && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0D1829] border border-cyan-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between">
+      {/* ========================================================================= */}
+      {/* 6. MODALS */}
+      {/* ========================================================================= */}
+
+      {/* 1. AUTHENTICATION MODAL (SIGN IN / SIGN UP) */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className={`${panel} w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200 border-cyan-500/30`}>
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/30">
-                  {selectedCenter.status === "Open" ? "OPEN & ACCEPTING EVACUEES" : "TEMPORARILY FULL"}
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
+                  AgapAlert Security Desk
                 </span>
-                <h3 className="text-xl font-black text-white mt-1">{selectedCenter.name}</h3>
-                <p className="text-xs text-slate-400">📍 {selectedCenter.barangay}, {selectedCenter.city} · {selectedCenter.elevation}</p>
+                <h3 className="mt-1 text-lg font-bold text-white">
+                  {authMode === "signin" ? "Sign In to AgapAlert" : "Create Resident or Official Account"}
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  Access local Santa Barbara Dalongue evacuation registry and flood beacon dispatch.
+                </p>
               </div>
               <button
-                onClick={() => setSelectedCenter(null)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                onClick={() => setShowAuthModal(false)}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Occupancy Progress */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
-              <div className="flex justify-between text-xs font-bold mb-1.5">
-                <span className="text-slate-400">Occupancy Usage</span>
-                <span className="text-white">{selectedCenter.occupancy} / {selectedCenter.capacity} beds</span>
-              </div>
-              <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-cyan-500 rounded-full"
-                  style={{ width: `${Math.round((selectedCenter.occupancy / selectedCenter.capacity) * 100)}%` }}
-                ></div>
+            {/* Mode Switcher Tabs */}
+            <div className="mt-4 flex rounded-lg border border-slate-800 bg-slate-950 p-1">
+              <button
+                type="button"
+                onClick={() => setAuthMode("signin")}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
+                  authMode === "signin" ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMode("signup")}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
+                  authMode === "signup" ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                Sign Up (Register)
+              </button>
+            </div>
+
+            {/* Quick Demo Logins */}
+            <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                1-Click Instant Demo Login:
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("resident")}
+                  className="flex-1 py-1.5 px-2.5 rounded bg-slate-800 border border-slate-700 hover:border-cyan-400 text-xs font-medium text-slate-200 transition cursor-pointer text-center"
+                >
+                  👤 Demo Resident
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("official")}
+                  className="flex-1 py-1.5 px-2.5 rounded bg-slate-800 border border-slate-700 hover:border-blue-400 text-xs font-medium text-slate-200 transition cursor-pointer text-center"
+                >
+                  🛡️ Demo Official / MDRRMO
+                </button>
               </div>
             </div>
 
-            {/* Supplies checklist */}
-            <div>
-              <span className="text-xs font-bold text-slate-300 block mb-2">Available Verified Supplies & Relief:</span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {selectedCenter.supplies.map((s, idx) => (
-                  <div key={idx} className="bg-slate-900/80 border border-slate-800 p-2 rounded-lg text-slate-300 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                    <span>{s}</span>
+            <form onSubmit={handleAuthSubmit} className="mt-4 space-y-3.5">
+              {authMode === "signup" && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-300">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Maria Santos"
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-300">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-300">Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+
+              {authMode === "signup" && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-300">Account Role</label>
+                      <select
+                        value={authRole}
+                        onChange={(e) => setAuthRole(e.target.value as Role)}
+                        className={inputCls}
+                      >
+                        <option value="resident">Resident / Citizen</option>
+                        <option value="official">Barangay Official / Responder</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-300">Barangay</label>
+                      <select
+                        value={authBarangay}
+                        onChange={(e) => setAuthBarangay(e.target.value)}
+                        className={inputCls}
+                      >
+                        <option value="Dalongue, Santa Barbara">Dalongue, Santa Barbara</option>
+                        <option value="Poblacion Sur, Santa Barbara">Poblacion Sur, Santa Barbara</option>
+                        <option value="Tuliao, Santa Barbara">Tuliao, Santa Barbara</option>
+                        <option value="Minien, Santa Barbara">Minien, Santa Barbara</option>
+                        <option value="Sto. Niño, Marikina">Sto. Niño, Marikina</option>
+                      </select>
+                    </div>
                   </div>
-                ))}
+
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-slate-300">
+                      Phone Number <span className="text-slate-500">(For rescue SMS)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      placeholder="0917-xxx-xxxx"
+                      value={authPhone}
+                      onChange={(e) => setAuthPhone(e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full mt-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-bold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer disabled:opacity-50"
+              >
+                {authLoading ? "Processing..." : authMode === "signin" ? "Sign In to Dashboard" : "Register Account"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. EMERGENCY SOS FLOOD POPUP WITH LOCATION PERMISSION & DETAILS */}
+      {showSosModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border-2 border-red-500 bg-slate-900 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-red-500/40 bg-red-500/20 text-red-500 animate-pulse">
+                  <Siren className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-red-400">
+                    High Priority Emergency Beacon
+                  </span>
+                  <h3 className="text-lg font-bold text-white">Broadcast Flood Rescue SOS</h3>
+                </div>
               </div>
+              <button
+                onClick={() => setShowSosModal(false)}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            {/* Modal Actions */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-slate-800">
-              <a
-                href={`tel:${selectedCenter.contact}`}
-                className="bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
-              >
-                <Phone className="w-3.5 h-3.5 text-cyan-400" />
-                Call Desk
-              </a>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCenter.lat},${selectedCenter.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Google Maps ↗
-              </a>
+            <p className="mt-3 text-xs leading-relaxed text-slate-300">
+              When triggered, your pinned GPS coordinates, current flood depth, and family stranded count are sent directly to the{" "}
+              <strong className="text-white">Santa Barbara MDRRMO Water Rescue Unit</strong> and{" "}
+              <strong className="text-white">Barangay Dalongue QRT Command</strong>.
+            </p>
+
+            {/* GPS LOCATION PERMISSION BOX */}
+            <div className="mt-4 rounded-xl border border-slate-700 bg-slate-950 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-xs font-semibold text-cyan-400">
+                  <LocateFixed className="h-4 w-4 text-cyan-400" />
+                  Live GPS Coordinates Pinning
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRequestGpsLocation}
+                  className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20 cursor-pointer"
+                >
+                  {gpsStatus === "requesting" ? "Locating..." : "Allow Location / Re-Pin"}
+                </button>
+              </div>
+
+              {userGpsCoords ? (
+                <div className="rounded-lg bg-emerald-950/40 border border-emerald-500/30 p-2.5 flex items-center justify-between text-xs">
+                  <div>
+                    <p className="font-semibold text-emerald-300">✓ Precise GPS Location Allowed & Locked</p>
+                    <p className="text-slate-400 text-[11px]">
+                      {userGpsCoords.lat.toFixed(5)}° N, {userGpsCoords.lng.toFixed(5)}° E (±{Math.round(userGpsCoords.accuracy || 8)}m)
+                    </p>
+                  </div>
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-amber-950/40 border border-amber-500/30 p-2.5 text-xs text-amber-300">
+                  📍 Click "Allow Location" to share your device's exact flood coordinates with rescue boats.
+                </div>
+              )}
+            </div>
+
+            {/* FLOOD SITUATION DETAILS */}
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-300">Current Flood Water Depth</label>
+                <select
+                  value={sosFloodDepth}
+                  onChange={(e) => setSosFloodDepth(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="Ankle-deep (0.3m)">Ankle-deep (0.3m) — Rising</option>
+                  <option value="Knee-deep (0.6m)">Knee-deep (0.6m) — Rapid current</option>
+                  <option value="Waist-deep (1.0m - 1.4m)">Waist-deep (1.0m - 1.4m) — Entering home</option>
+                  <option value="Chest / Neck-deep (1.5m - 1.8m)">Chest / Neck-deep (1.5m - 1.8m) — Critical</option>
+                  <option value="Submerged / Roof-Level (>2.0m)">Submerged / Roof-Level (&gt;2.0m) — Trapped on roof</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-300">Number of Stranded Persons</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={sosPeopleCount}
+                    onChange={(e) => setSosPeopleCount(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-300">Contact Number</label>
+                  <input
+                    type="tel"
+                    value={sosContact}
+                    onChange={(e) => setSosContact(e.target.value)}
+                    placeholder="0917-xxx-xxxx"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-300">Specific Landmark / Sitio</label>
+                <input
+                  type="text"
+                  value={sosLandmark}
+                  onChange={(e) => setSosLandmark(e.target.value)}
+                  placeholder="e.g. Near Sinocalan Dike / Dalongue Elementary"
+                  className={inputCls}
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sosSpecialNeeds}
+                  onChange={(e) => setSosSpecialNeeds(e.target.checked)}
+                  className="rounded border-slate-700 bg-slate-900 text-red-500 focus:ring-red-500"
+                />
+                <span>Includes elderly seniors, pregnant women, or infants needing urgent boat transfer</span>
+              </label>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="mt-5 space-y-2">
               <button
-                onClick={() => {
-                  setSelectedCenter(null);
-                  setActiveTab("radar");
-                  setToastMessage(`Routing directions to ${selectedCenter.name} on Live Map!`);
-                }}
-                className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                onClick={handleTriggerSos}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3.5 text-sm font-bold text-white shadow-xl shadow-red-900/50 transition hover:bg-red-500 active:scale-95 cursor-pointer"
               >
-                <Navigation className="w-3.5 h-3.5" />
-                Live Route Map
+                <Siren className="h-5 w-5" />
+                TRANSMIT RESCUE BEACON NOW
               </button>
+
+              <div className="flex gap-2">
+                <a
+                  href="tel:0917-508-1122"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                >
+                  <Phone className="h-3.5 w-3.5 text-emerald-400" />
+                  Call Santa Barbara MDRRMO
+                </a>
+                <a
+                  href="tel:911"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                >
+                  <Phone className="h-3.5 w-3.5 text-red-400" />
+                  Dial 911 National
+                </a>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Incident Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0D1829] border border-cyan-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">Community Safety Desk</span>
-                <h3 className="text-xl font-black text-white">Submit Incident Report</h3>
+      {/* 3. RESPONDER SOS ACCEPT / DECLINE MODAL */}
+      {showResponderSosModal && activeSosForResponder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/85 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border-2 border-red-500 bg-slate-900 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white">
+                  <Siren className="h-6 w-6 animate-pulse" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-red-400">
+                    Incoming Disaster Rescue Alert
+                  </span>
+                  <h3 className="text-lg font-bold text-white">Flood Distress Beacon</h3>
+                  <p className="text-xs text-slate-400">{activeSosForResponder.timestamp}</p>
+                </div>
               </div>
               <button
-                onClick={() => setShowReportModal(false)}
-                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                onClick={() => setShowResponderSosModal(false)}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateReport} className="space-y-3.5">
+            {/* Victim & Flood Information Card */}
+            <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-xs text-slate-400">Victim / Resident:</span>
+                <span className="text-xs font-bold text-white">{activeSosForResponder.victimName || "Resident in Distress"}</span>
+              </div>
+
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-xs text-slate-400">Location / Sector:</span>
+                <span className="text-xs font-bold text-cyan-300">{activeSosForResponder.location}</span>
+              </div>
+
+              {activeSosForResponder.lat && activeSosForResponder.lng && (
+                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                  <span className="text-xs text-slate-400">GPS Coordinates:</span>
+                  <span className="text-xs font-mono font-medium text-emerald-400">
+                    {activeSosForResponder.lat.toFixed(5)}° N, {activeSosForResponder.lng.toFixed(5)}° E
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                <span className="text-xs text-slate-400">Flood Water Depth:</span>
+                <span className="text-xs font-bold text-red-400">
+                  {activeSosForResponder.waterDepth || "Waist-deep flood"}
+                </span>
+              </div>
+
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Incident Category</label>
-                <select
-                  name="category"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                <span className="text-xs text-slate-400 block mb-1">Situation Details:</span>
+                <p className="text-xs leading-relaxed text-slate-200 bg-slate-900 p-2.5 rounded border border-slate-800">
+                  {activeSosForResponder.details}
+                </p>
+              </div>
+
+              {activeSosForResponder.contact && (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs text-slate-400">Contact Number:</span>
+                  <a
+                    href={`tel:${activeSosForResponder.contact}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:underline"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    {activeSosForResponder.contact}
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* RESPONDER DECISION ACTIONS (ACCEPT OR DECLINE) */}
+            <div className="mt-5 space-y-2.5">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Responder Action Required:
+              </span>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleAcceptRescue(activeSosForResponder.id)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-lg shadow-emerald-900/40 hover:bg-emerald-500 active:scale-95 cursor-pointer"
                 >
-                  <option value="flood">🌊 Rapid Flooding / Rising Water</option>
-                  <option value="medical">🚑 Medical Emergency / Stranded Senior</option>
-                  <option value="relief">📦 Relief Goods & Potable Water Request</option>
-                  <option value="debris">⚠️ Road Blockage / Fallen Tree</option>
+                  <CheckCheck className="h-4 w-4" />
+                  ACCEPT RESCUE
+                  <span className="text-[10px] font-normal block opacity-80">(Dispatch Boat)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeclineRescue(activeSosForResponder.id)}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-500/50 bg-red-950/50 py-3 text-xs font-bold text-red-300 shadow-lg hover:bg-red-900/50 active:scale-95 cursor-pointer"
+                >
+                  <XCircle className="h-4 w-4" />
+                  DECLINE / ESCALATE
+                  <span className="text-[10px] font-normal block opacity-80">(To Provincial)</span>
+                </button>
+              </div>
+
+              {activeSosForResponder.lat && activeSosForResponder.lng && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${activeSosForResponder.lat},${activeSosForResponder.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 py-2.5 text-xs font-medium text-slate-200 hover:bg-slate-700 text-center"
+                >
+                  <Navigation className="h-3.5 w-3.5 text-cyan-400" />
+                  Open Victim GPS in Navigation Maps ↗
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Evacuation Center Details Modal */}
+      {selectedCenter && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className={`${panel} w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
+                  Verified Safe Evacuation Shelter
+                </span>
+                <h3 className="mt-1 text-lg font-semibold text-white">{selectedCenter.name}</h3>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {selectedCenter.barangay}, {selectedCenter.city} · {selectedCenter.elevation}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedCenter(null)}
+                aria-label="Close"
+                className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Shelter capacity status</span>
+                  <span className="font-semibold text-emerald-400">
+                    {selectedCenter.status === "Open" ? "Open & Accepting Evacuees" : "At Full Capacity"}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white tabular-nums">{selectedCenter.occupancy}</span>
+                  <span className="text-xs text-slate-400">/ {selectedCenter.capacity} registered beds</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-semibold text-slate-300">Verified Relief Inventory on Site</h4>
+                <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {selectedCenter.supplies.map((sup, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-xs text-slate-300"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                      {sup}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-800 pt-4 text-xs">
+                <span className="text-slate-400">Shelter Emergency Contact:</span>
+                <a
+                  href={`tel:${selectedCenter.contact}`}
+                  className="inline-flex items-center gap-1.5 font-semibold text-cyan-400 hover:underline"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  {selectedCenter.contact}
+                </a>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCenter.lat},${selectedCenter.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  Navigate via Google Maps ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Incident Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className={`${panel} w-full max-w-lg p-6 animate-in fade-in zoom-in-95 duration-200`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
+                  Community Safety Desk
+                </span>
+                <h3 className="mt-1 text-lg font-semibold text-white">Report an Incident</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Your report is sent to the Santa Barbara disaster response command and plotted on the live map.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowReportModal(false)}
+                aria-label="Close"
+                className="shrink-0 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateReport} className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-slate-300">Incident category</label>
+                <select name="category" className={inputCls}>
+                  <option value="flood">Rapid flooding / rising river water</option>
+                  <option value="medical">Medical emergency / senior stranded</option>
+                  <option value="relief">Relief goods & potable water request</option>
+                  <option value="debris">Road blockage / fallen tree</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Incident Title</label>
+                <label className="mb-1.5 block text-xs font-medium text-slate-300">Incident title</label>
                 <input
                   type="text"
                   name="title"
                   required
-                  placeholder="e.g. Waist-deep water near Katipunan bridge"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  placeholder="e.g. Waist-deep flood near Dalongue Barangay Road"
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Specific Location / Landmark</label>
+                <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                  Specific location / landmark
+                </label>
                 <input
                   type="text"
                   name="location"
                   required
-                  defaultValue={`${selectedLocation.name}, Marikina River Sector`}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  defaultValue={`${selectedLocation.name}`}
+                  className={inputCls}
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Situation Details & People Stranded</label>
+                <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                  Situation details & people stranded
+                </label>
                 <textarea
                   name="details"
                   required
                   rows={3}
-                  placeholder="Describe number of people, current water level, and special medical needs..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  placeholder="Describe number of people, current water level, and special medical needs…"
+                  className={inputCls}
                 ></textarea>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Contact Number (Optional)</label>
+                <label className="mb-1.5 block text-xs font-medium text-slate-300">
+                  Contact number <span className="text-slate-500">(optional)</span>
+                </label>
                 <input
                   type="tel"
                   name="contact"
+                  defaultValue={currentUser?.phone || ""}
                   placeholder="e.g. 0917-xxx-xxxx"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500"
+                  className={inputCls}
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-2 border-t border-slate-800 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowReportModal(false)}
-                  className="bg-slate-900 hover:bg-slate-800 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                  className="rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black px-5 py-2 rounded-xl text-xs shadow-md shadow-cyan-500/25 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-5 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer"
                 >
-                  Submit to Response Desk
+                  <Send className="h-3.5 w-3.5" />
+                  Submit report
                 </button>
               </div>
             </form>
@@ -1387,50 +2466,8 @@ export default function Page() {
         </div>
       )}
 
-      {/* Emergency SOS Confirmation Modal */}
-      {showSosModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#13070A] border-2 border-red-500 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 rounded-full bg-red-600/20 border border-red-500 flex items-center justify-center text-red-500 mx-auto animate-pulse">
-              <Siren className="w-8 h-8" />
-            </div>
-
-            <h3 className="text-2xl font-black text-white">Broadcast Emergency SOS?</h3>
-            <p className="text-xs text-red-200/80 leading-relaxed">
-              This triggers a high-priority rescue beacon transmitting your live coordinates to the <strong>Barangay Quick Response Command</strong> and <strong>NDRRMC Rescue Boats</strong>.
-            </p>
-
-            <div className="space-y-2 pt-2">
-              <button
-                onClick={handleTriggerSos}
-                className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-black text-sm py-3 rounded-xl shadow-lg shadow-red-600/50 transition cursor-pointer"
-              >
-                CONFIRM RESCUE BEACON
-              </button>
-              <a
-                href="tel:911"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs py-2.5 rounded-xl border border-slate-800 block"
-              >
-                Direct Call: Dial 911
-              </a>
-              <button
-                onClick={() => setShowSosModal(false)}
-                className="text-xs text-slate-400 hover:text-white pt-1 block mx-auto cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. Toast Notification Pill */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold animate-in slide-in-from-bottom-5 duration-300">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      {/* 6. Toast Notification */}
+      {toast && <Toast toast={{ ...toast }} />}
     </div>
   );
 }

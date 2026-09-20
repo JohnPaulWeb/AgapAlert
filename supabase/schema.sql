@@ -302,6 +302,9 @@ alter publication supabase_realtime add table public.advisories;
 
 -- Seed Barangays
 insert into public.barangays (id, name, city, province, hotline, river_basin) values
+  ('b0000000-0000-0000-0000-000000000001', 'Dalongue', 'Santa Barbara', 'Pangasinan', '(075) 518-2024', 'Sinocalan River Basin'),
+  ('b0000000-0000-0000-0000-000000000002', 'Poblacion Sur', 'Santa Barbara', 'Pangasinan', '0917-508-1122', 'Sinocalan River Basin'),
+  ('b0000000-0000-0000-0000-000000000003', 'Tuliao', 'Santa Barbara', 'Pangasinan', '0920-911-3344', 'Sinocalan River Basin'),
   ('b1111111-1111-1111-1111-111111111111', 'Sto. Niño', 'Marikina City', 'Metro Manila', '(02) 8646-1633', 'Marikina River Basin'),
   ('b2222222-2222-2222-2222-222222222222', 'Concepcion Uno', 'Marikina City', 'Metro Manila', '(02) 8941-2290', 'Marikina River Basin'),
   ('b3333333-3333-3333-3333-333333333333', 'San Roque', 'Marikina City', 'Metro Manila', '(02) 8646-0812', 'Marikina River Basin'),
@@ -311,11 +314,11 @@ on conflict (id) do nothing;
 
 -- Seed Evacuation Centers
 insert into public.evacuation_centers (id, barangay_id, name, address, latitude, longitude, capacity, current_occupancy, status, elevation_notes, contact_number, features) values
+  ('c0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'Dalongue Barangay Evacuation Hall', 'Barangay Road, Dalongue, Santa Barbara, Pangasinan', 16.0034, 120.3850, 180, 42, 'open', '18m High Ground', '(075) 518-2024', array['Medical Aid', 'High Ground', 'Generator Power', 'Rescue Boats']),
+  ('c0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000002', 'Santa Barbara Multi-Purpose Gymnasium', 'Poblacion Sur, Santa Barbara, Pangasinan', 15.9982, 120.4015, 350, 110, 'open', '22m High Elevation', '0917-508-1122', array['Medical Aid', 'Pet Friendly', 'High Ground', 'Solar Backup']),
+  ('c0000000-0000-0000-0000-000000000003', 'b0000000-0000-0000-0000-000000000003', 'Tuliao Disaster Evacuation Center', 'Tuliao Highway, Santa Barbara, Pangasinan', 16.0120, 120.3780, 220, 65, 'open', '20m Elevation', '0920-911-3344', array['Medical Aid', 'Pet Friendly', 'High Ground']),
   ('c1111111-1111-1111-1111-111111111111', 'b1111111-1111-1111-1111-111111111111', 'Marikina Sports Center Complex', 'Sumulong Highway, Sto. Niño, Marikina City', 14.6339, 121.0963, 220, 54, 'open', '24m High Elevation', '(02) 8646-1633', array['Medical Aid', 'Pet Friendly', 'High Ground', 'Generator Power']),
-  ('c2222222-2222-2222-2222-222222222222', 'b2222222-2222-2222-2222-222222222222', 'Concepcion Elementary School', 'J.P. Rizal St., Concepcion Uno, Marikina City', 14.6543, 121.1084, 200, 132, 'open', '21m Elevation', '(02) 8941-2290', array['Medical Aid', 'High Ground']),
-  ('c3333333-3333-3333-3333-333333333333', 'b3333333-3333-3333-3333-333333333333', 'San Roque Multipurpose Evac Center', 'Rainbow St., San Roque, Marikina City', 14.6291, 121.1012, 140, 78, 'open', '22m Elevation', '(02) 8646-0812', array['Pet Friendly', 'High Ground']),
-  ('c4444444-4444-4444-4444-444444444444', 'b4444444-4444-4444-4444-444444444444', 'Claro M. Recto High School', 'Loyola Heights, Quezon City', 14.6401, 121.0772, 280, 160, 'open', '32m High Ground', '(02) 8928-1144', array['Medical Aid', 'High Ground', 'Solar Power']),
-  ('c5555555-5555-5555-5555-555555555555', 'b5555555-5555-5555-5555-555555555555', 'Santolan Multi-Level Disaster Center', 'Evangelista St., Santolan, Pasig City', 14.6087, 121.0874, 170, 95, 'open', '20m Elevation', '(02) 8641-0022', array['Medical Aid', 'High Ground'])
+  ('c2222222-2222-2222-2222-222222222222', 'b2222222-2222-2222-2222-222222222222', 'Concepcion Elementary School', 'J.P. Rizal St., Concepcion Uno, Marikina City', 14.6543, 121.1084, 200, 132, 'open', '21m Elevation', '(02) 8941-2290', array['Medical Aid', 'High Ground'])
 on conflict (id) do nothing;
 
 -- Seed Relief Inventory
