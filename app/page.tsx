@@ -16,10 +16,13 @@ import {
   Crosshair,
   ExternalLink,
   Eye,
+  EyeOff,
   Flame,
   Home,
   Layers,
   LifeBuoy,
+  Lock,
+  Mail,
   MapPin,
   Minus,
   Navigation,
@@ -31,6 +34,7 @@ import {
   Shield,
   ShieldCheck,
   Siren,
+  Sparkles,
   Stethoscope,
   TrafficCone,
   TreePine,
@@ -511,6 +515,7 @@ export default function Page() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [authName, setAuthName] = useState("");
   const [authRole, setAuthRole] = useState<Role>("resident");
   const [authBarangay, setAuthBarangay] = useState("Dalongue, Santa Barbara");
@@ -576,11 +581,37 @@ export default function Page() {
     }
   }, [currentUser]);
 
-  // Sync state when location changes
+  // Sync live meteorological & hydrological telemetry from /api/flood/detect
   useEffect(() => {
-    setLiveRiverLevel(selectedLocation.riverLevel);
-    setLiveRainRate(selectedLocation.rainRate);
-    setLiveWindSpeed(selectedLocation.windSpeed);
+    let isCancelled = false;
+    async function syncLiveDetection() {
+      try {
+        const res = await fetch(`/api/flood/detect?lat=${selectedLocation.lat}&lng=${selectedLocation.lng}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!isCancelled && data?.success) {
+          if (data.weather?.rainRateMmPerHour !== undefined) {
+            setLiveRainRate(data.weather.rainRateMmPerHour);
+          }
+          if (data.riverTelemetry?.currentLevelMeters !== undefined) {
+            setLiveRiverLevel(data.riverTelemetry.currentLevelMeters);
+          }
+          if (data.weather?.windSpeedKph !== undefined) {
+            setLiveWindSpeed(data.weather.windSpeedKph);
+          }
+        }
+      } catch {
+        if (!isCancelled) {
+          setLiveRiverLevel(selectedLocation.riverLevel);
+          setLiveRainRate(selectedLocation.rainRate);
+          setLiveWindSpeed(selectedLocation.windSpeed);
+        }
+      }
+    }
+    syncLiveDetection();
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedLocation]);
 
   // Live telemetry pulse ticker
@@ -1845,132 +1876,174 @@ export default function Page() {
 
       {/* 1. AUTHENTICATION MODAL (SIGN IN / SIGN UP) */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className={`${panel} w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200 border-cyan-500/30`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400">
-                  AgapAlert Security Desk
-                </span>
-                <h3 className="mt-1 text-lg font-bold text-white">
-                  {authMode === "signin" ? "Sign In to AgapAlert" : "Create Resident or Official Account"}
-                </h3>
-                <p className="mt-1 text-xs text-slate-400">
-                  Access local Santa Barbara Dalongue evacuation registry and flood beacon dispatch.
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/85 p-4 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-2xl border border-cyan-500/40 bg-slate-900/95 p-6 sm:p-7 shadow-2xl shadow-cyan-950/60 animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-inner">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-cyan-400 border border-cyan-500/25 uppercase">
+                      <Lock className="h-3 w-3" /> Encrypted Disaster Network
+                    </span>
+                  </div>
+                  <h3 className="mt-1 text-lg font-black tracking-tight text-white">
+                    {authMode === "signin" ? "Sign In to AgapAlert" : "Create Response Account"}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Access Pangasinan & Metro Manila flood telemetry, water gauge feeds, and evacuation routing.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setShowAuthModal(false)}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Mode Switcher Tabs */}
-            <div className="mt-4 flex rounded-lg border border-slate-800 bg-slate-950 p-1">
+            <div className="mt-5 flex rounded-xl border border-slate-800 bg-slate-950/80 p-1">
               <button
                 type="button"
                 onClick={() => setAuthMode("signin")}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
-                  authMode === "signin" ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  authMode === "signin"
+                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                Sign In
+                <LogIn className="h-3.5 w-3.5" /> Sign In
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMode("signup")}
-                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
-                  authMode === "signup" ? "bg-cyan-500 text-slate-950 shadow" : "text-slate-400 hover:text-white"
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  authMode === "signup"
+                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
+                    : "text-slate-400 hover:text-white"
                 }`}
               >
-                Sign Up (Register)
+                <UserPlus className="h-3.5 w-3.5" /> Create Account
               </button>
             </div>
 
-            {/* Quick Demo Logins */}
-            <div className="mt-4 rounded-lg border border-slate-800 bg-slate-950/60 p-3 space-y-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                1-Click Instant Demo Login:
-              </span>
-              <div className="flex gap-2">
+            {/* Role Picker Cards */}
+            <div className="mt-4">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                Select Account Clearance Level
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("resident")}
-                  className="flex-1 py-1.5 px-2.5 rounded bg-slate-800 border border-slate-700 hover:border-cyan-400 text-xs font-medium text-slate-200 transition cursor-pointer text-center"
+                  onClick={() => setAuthRole("resident")}
+                  className={`flex flex-col items-start p-3 rounded-xl border transition text-left cursor-pointer ${
+                    authRole === "resident"
+                      ? "border-cyan-500 bg-cyan-500/10 shadow-sm shadow-cyan-500/10"
+                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
+                  }`}
                 >
-                  👤 Demo Resident
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className={`h-4 w-4 ${authRole === "resident" ? "text-cyan-400" : "text-slate-400"}`} />
+                    <span className={`text-xs font-bold ${authRole === "resident" ? "text-cyan-300" : "text-slate-200"}`}>
+                      Resident Citizen
+                    </span>
+                  </div>
+                  <span className="text-[10.5px] text-slate-400 leading-tight">
+                    Emergency SOS, evacuation route map & rainfall radar
+                  </span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => handleQuickDemoLogin("official")}
-                  className="flex-1 py-1.5 px-2.5 rounded bg-slate-800 border border-slate-700 hover:border-blue-400 text-xs font-medium text-slate-200 transition cursor-pointer text-center"
+                  onClick={() => setAuthRole("official")}
+                  className={`flex flex-col items-start p-3 rounded-xl border transition text-left cursor-pointer ${
+                    authRole === "official"
+                      ? "border-emerald-500 bg-emerald-500/10 shadow-sm shadow-emerald-500/10"
+                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
+                  }`}
                 >
-                  🛡️ Demo Official / MDRRMO
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShieldCheck className={`h-4 w-4 ${authRole === "official" ? "text-emerald-400" : "text-slate-400"}`} />
+                    <span className={`text-xs font-bold ${authRole === "official" ? "text-emerald-300" : "text-slate-200"}`}>
+                      MDRRMO Official
+                    </span>
+                  </div>
+                  <span className="text-[10.5px] text-slate-400 leading-tight">
+                    Evac capacity manager, relief inventory & alert dispatch
+                  </span>
                 </button>
               </div>
             </div>
 
-            <form onSubmit={handleAuthSubmit} className="mt-4 space-y-3.5">
+            <form onSubmit={handleAuthSubmit} className="mt-4 space-y-3">
               {authMode === "signup" && (
                 <div>
                   <label className="mb-1 block text-xs font-medium text-slate-300">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Maria Santos"
-                    value={authName}
-                    onChange={(e) => setAuthName(e.target.value)}
-                    className={inputCls}
-                  />
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Maria Santos"
+                      value={authName}
+                      onChange={(e) => setAuthName(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
                 </div>
               )}
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-300">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  className={inputCls}
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@example.ph"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-300">Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  className={inputCls}
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <input
+                    type={showAuthPassword ? "text" : "password"}
+                    required
+                    placeholder="••••••••"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full pl-9 pr-10 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAuthPassword(!showAuthPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                  >
+                    {showAuthPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {authMode === "signup" && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-300">Account Role</label>
-                      <select
-                        value={authRole}
-                        onChange={(e) => setAuthRole(e.target.value as Role)}
-                        className={inputCls}
-                      >
-                        <option value="resident">Resident / Citizen</option>
-                        <option value="official">Barangay Official / Responder</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-300">Barangay</label>
+                      <label className="mb-1 block text-xs font-medium text-slate-300">Barangay Sector</label>
                       <select
                         value={authBarangay}
                         onChange={(e) => setAuthBarangay(e.target.value)}
-                        className={inputCls}
+                        className="w-full px-2.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500"
                       >
                         <option value="Dalongue, Santa Barbara">Dalongue, Santa Barbara</option>
                         <option value="Poblacion Sur, Santa Barbara">Poblacion Sur, Santa Barbara</option>
@@ -1979,19 +2052,22 @@ export default function Page() {
                         <option value="Sto. Niño, Marikina">Sto. Niño, Marikina</option>
                       </select>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-300">
-                      Phone Number <span className="text-slate-500">(For rescue SMS)</span>
-                    </label>
-                    <input
-                      type="tel"
-                      placeholder="0917-xxx-xxxx"
-                      value={authPhone}
-                      onChange={(e) => setAuthPhone(e.target.value)}
-                      className={inputCls}
-                    />
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-slate-300">
+                        Emergency Mobile
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                        <input
+                          type="tel"
+                          placeholder="0917-xxx-xxxx"
+                          value={authPhone}
+                          onChange={(e) => setAuthPhone(e.target.value)}
+                          className="w-full pl-8 pr-2.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -1999,11 +2075,57 @@ export default function Page() {
               <button
                 type="submit"
                 disabled={authLoading}
-                className="w-full mt-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-bold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer disabled:opacity-50"
+                className="w-full mt-3 flex items-center justify-center gap-2 rounded-xl bg-cyan-500 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400 cursor-pointer disabled:opacity-50"
               >
-                {authLoading ? "Processing..." : authMode === "signin" ? "Sign In to Dashboard" : "Register Account"}
+                {authLoading ? (
+                  "Authenticating..."
+                ) : authMode === "signin" ? (
+                  <>
+                    <ShieldCheck className="h-4 w-4" /> Sign In & Access Console
+                  </>
+                ) : (
+                  <>
+                    <BadgeCheck className="h-4 w-4" /> Register & Activate Telemetry
+                  </>
+                )}
               </button>
             </form>
+
+            {/* Instant 1-Click Demo Profiles */}
+            <div className="mt-5 border-t border-slate-800/80 pt-3">
+              <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Instant 1-Click Test Credentials:
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("resident")}
+                  className="flex items-center gap-2.5 p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 hover:bg-slate-900 transition text-left cursor-pointer"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 text-xs font-bold">
+                    J
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="text-xs font-bold text-slate-200 truncate">Juan Dela Cruz</div>
+                    <div className="text-[10px] text-cyan-400 truncate">Resident • Dalongue</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin("official")}
+                  className="flex items-center gap-2.5 p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-emerald-500/50 hover:bg-slate-900 transition text-left cursor-pointer"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+                    R
+                  </div>
+                  <div className="overflow-hidden">
+                    <div className="text-xs font-bold text-slate-200 truncate">Capt. R. Soriano</div>
+                    <div className="text-[10px] text-emerald-400 truncate">MDRRMO Commander</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -211,3 +211,33 @@ export function subscribeToIncidentQueue(
     )
     .subscribe();
 }
+
+/**
+ * Fetch live rain & flood risk detection assessment from the AgapAlert detection engine
+ */
+export async function fetchLiveFloodRisk(lat: number = 16.0034, lng: number = 120.3850) {
+  try {
+    const res = await fetch(`/api/flood/detect?lat=${lat}&lng=${lng}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.warn("Flood detection API offline, returning baseline:", error);
+    return null;
+  }
+}
+
+/**
+ * Fetch active river telemetry stations
+ */
+export async function fetchRiverStations() {
+  try {
+    const res = await fetch(`/api/telemetry/stations`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return data.stations || [];
+  } catch (error) {
+    console.warn("River stations API offline:", error);
+    return [];
+  }
+}
+

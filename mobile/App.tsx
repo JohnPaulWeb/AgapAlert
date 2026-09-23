@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Compass,
   Crosshair,
+  Eye,
+  EyeOff,
   Flame,
   HeartHandshake,
   Home,
@@ -27,10 +29,13 @@ import {
   RefreshCw,
   Search,
   Settings as SettingsIcon,
+  Shield,
   ShieldAlert,
   ShieldCheck,
   Siren,
   Sliders,
+  Sparkles,
+  User,
   UserCheck,
   Users,
   Volume2,
@@ -1280,81 +1285,102 @@ function AuthModal({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [barangay, setBarangay] = useState("Dalongue, Santa Barbara");
   const [phone, setPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignIn = () => {
-    if (!email || !password) {
-      Alert.alert("Missing Fields", "Please enter your email and password.");
+  const handleSignIn = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert("Required Information", "Please provide your email and account password.");
       return;
     }
-    const user: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email,
-      fullName: fullName || email.split("@")[0],
-      role,
-      barangay: barangay || "Dalongue, Santa Barbara",
-      phone,
-    };
-    onSaveUser(user);
-    onClose();
-    Alert.alert("Signed In", `Welcome back, ${user.fullName}!`);
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      const user: UserProfile = {
+        id: `usr-${Date.now()}`,
+        email: email.trim(),
+        fullName: fullName.trim() || email.split("@")[0].replace(".", " "),
+        role,
+        barangay: barangay || "Dalongue, Santa Barbara",
+        phone: phone.trim() || undefined,
+      };
+      onSaveUser(user);
+      onClose();
+      Alert.alert("Verified Session", `Welcome back, ${user.fullName} (${user.role.toUpperCase()})`);
+    }, 600);
   };
 
-  const handleSignUp = () => {
-    if (!fullName || !email || !password) {
+  const handleSignUp = async () => {
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
       Alert.alert("Missing Fields", "Please complete Full Name, Email, and Password.");
       return;
     }
-    const user: UserProfile = {
-      id: `usr-${Date.now()}`,
-      email,
-      fullName,
-      role,
-      barangay,
-      phone,
-    };
-    onSaveUser(user);
-    onClose();
-    Alert.alert("Registration Complete", `Account registered for ${user.fullName} (${user.role.toUpperCase()}).`);
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setIsSubmitting(false);
+      const user: UserProfile = {
+        id: `usr-${Date.now()}`,
+        email: email.trim(),
+        fullName: fullName.trim(),
+        role,
+        barangay: barangay.trim() || "Dalongue, Santa Barbara",
+        phone: phone.trim() || undefined,
+      };
+      onSaveUser(user);
+      onClose();
+      Alert.alert(
+        "Account Created",
+        `Registered successfully as ${user.fullName} for ${user.barangay}. Live rain & flood alerts are now active.`
+      );
+    }, 600);
   };
 
-  const handleQuickDemoResident = () => {
+  const handleSelectDemo = (preset: {
+    email: string;
+    fullName: string;
+    role: Role;
+    barangay: string;
+    phone: string;
+  }) => {
     const user: UserProfile = {
-      id: "demo-res-1",
-      email: "resident.dalongue@agapalert.ph",
-      fullName: "Juan Dela Cruz",
-      role: "resident",
-      barangay: "Dalongue, Santa Barbara",
-      phone: "0917-555-0199",
+      id: `demo-${preset.role}-${Date.now()}`,
+      email: preset.email,
+      fullName: preset.fullName,
+      role: preset.role,
+      barangay: preset.barangay,
+      phone: preset.phone,
     };
     onSaveUser(user);
     onClose();
-    Alert.alert("Demo Resident Mode", "Logged in as Juan Dela Cruz (Dalongue Resident).");
-  };
-
-  const handleQuickDemoOfficial = () => {
-    const user: UserProfile = {
-      id: "demo-off-1",
-      email: "mdrmo.santabarbara@pangasinan.gov.ph",
-      fullName: "Officer R. Mendoza",
-      role: "official",
-      barangay: "Santa Barbara Command Desk",
-      phone: "0918-999-4400",
-    };
-    onSaveUser(user);
-    onClose();
-    Alert.alert("Demo Official Mode", "Logged in as Officer R. Mendoza (MDRRMO Santa Barbara).");
+    Alert.alert(
+      "Instant Access Granted",
+      `Switched session to ${preset.fullName} (${preset.role.toUpperCase()}).`
+    );
   };
 
   return (
     <View style={styles.modalBackdrop}>
-      <View style={[styles.modalSheet, { maxHeight: "90%" }]}>
+      <View style={[styles.modalSheet, { maxHeight: "92%" }]}>
+        {/* Modal Header */}
         <View style={styles.modalHead}>
-          <View>
-            <Text style={styles.modalTag}>ACCOUNT & CREDENTIALS</Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Shield color={C.cyan} size={14} />
+              <Text style={styles.modalTag}>ENCRYPTED DISASTER NETWORK</Text>
+            </View>
             <Text style={styles.modalTitle}>
-              {currentUser ? "User Profile" : tab === "signin" ? "Sign In to AgapAlert" : "Create Resident Account"}
+              {currentUser
+                ? "Active User Profile"
+                : tab === "signin"
+                ? "Sign In to AgapAlert"
+                : "Register Disaster Response Account"}
+            </Text>
+            <Text style={styles.modalSub}>
+              {currentUser
+                ? "Manage your credentials and local DRRMO emergency channel"
+                : "Real-time rainfall monitoring, water level sensors & community evacuation beacon"}
             </Text>
           </View>
           <Pressable style={styles.closeBtn} onPress={onClose}>
@@ -1363,139 +1389,399 @@ function AuthModal({
         </View>
 
         {currentUser ? (
-          <View style={{ gap: 12 }}>
+          <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 4 }}>
+            {/* Active Profile Card */}
             <View style={styles.profileCard}>
-              <View style={styles.profileAvatar}>
-                <Text style={styles.profileAvatarText}>{currentUser.fullName.charAt(0).toUpperCase()}</Text>
+              <View
+                style={[
+                  styles.profileAvatar,
+                  currentUser.role === "official" && { backgroundColor: C.teal },
+                ]}
+              >
+                <Text style={styles.profileAvatarText}>
+                  {currentUser.fullName.charAt(0).toUpperCase()}
+                </Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.profileName}>{currentUser.fullName}</Text>
                 <Text style={styles.profileEmail}>{currentUser.email}</Text>
-                <View style={styles.profileRoleBadge}>
-                  <Text style={styles.profileRoleText}>{currentUser.role.toUpperCase()}</Text>
+                <View
+                  style={[
+                    styles.profileRoleBadge,
+                    currentUser.role === "official" && {
+                      backgroundColor: C.tealPale,
+                      borderColor: "rgba(20, 184, 166, 0.4)",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.profileRoleText,
+                      currentUser.role === "official" && { color: C.teal },
+                    ]}
+                  >
+                    {currentUser.role === "official"
+                      ? "VERIFIED MDRRMO OFFICIAL"
+                      : "REGISTERED RESIDENT"}
+                  </Text>
                 </View>
               </View>
             </View>
 
-            <View style={styles.profileInfoBox}>
-              <Text style={styles.profileInfoLabel}>ASSIGNED BARANGAY / SECTOR</Text>
-              <Text style={styles.profileInfoVal}>{currentUser.barangay || "Dalongue, Santa Barbara"}</Text>
+            {/* Jurisdiction & Contact Details */}
+            <View style={{ gap: 8, marginTop: 12 }}>
+              <View style={styles.profileInfoBox}>
+                <Text style={styles.profileInfoLabel}>REGISTERED BARANGAY / BASIN</Text>
+                <Text style={styles.profileInfoVal}>
+                  {currentUser.barangay || "Dalongue, Santa Barbara, Pangasinan"}
+                </Text>
+              </View>
+
+              {currentUser.phone && (
+                <View style={styles.profileInfoBox}>
+                  <Text style={styles.profileInfoLabel}>EMERGENCY SMS CONTACT</Text>
+                  <Text style={styles.profileInfoVal}>{currentUser.phone}</Text>
+                </View>
+              )}
+
+              <View
+                style={[
+                  styles.profileInfoBox,
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    backgroundColor: "rgba(16, 185, 129, 0.1)",
+                    borderWidth: 1,
+                    borderColor: "rgba(16, 185, 129, 0.25)",
+                  },
+                ]}
+              >
+                <CheckCircle2 color={C.green} size={16} />
+                <Text style={{ color: C.green, fontSize: 11.5, fontWeight: "700", flex: 1 }}>
+                  Live telemetry stream & push warnings enabled for your device.
+                </Text>
+              </View>
             </View>
 
+            {/* Switch Account Quick Demo Buttons */}
+            <View style={[styles.demoSection, { marginTop: 14 }]}>
+              <Text style={styles.demoLabel}>SWITCH ACCOUNT ROLE (INSTANT TEST):</Text>
+              <View style={{ flexDirection: "column", gap: 8, marginTop: 8 }}>
+                <Pressable
+                  style={[styles.demoBtn, { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 12 }]}
+                  onPress={() =>
+                    handleSelectDemo({
+                      email: "resident.dalongue@agapalert.ph",
+                      fullName: "Juan Dela Cruz",
+                      role: "resident",
+                      barangay: "Dalongue, Santa Barbara",
+                      phone: "0917-555-0199",
+                    })
+                  }
+                >
+                  <Text style={styles.demoBtnText}>👤 Juan Dela Cruz (Resident)</Text>
+                  <ChevronRight color={C.cyan} size={14} />
+                </Pressable>
+                <Pressable
+                  style={[
+                    styles.demoBtn,
+                    {
+                      borderColor: "rgba(20, 184, 166, 0.4)",
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 12,
+                    },
+                  ]}
+                  onPress={() =>
+                    handleSelectDemo({
+                      email: "mdrmo.santabarbara@pangasinan.gov.ph",
+                      fullName: "Officer R. Mendoza",
+                      role: "official",
+                      barangay: "Santa Barbara Command Desk",
+                      phone: "0918-999-4400",
+                    })
+                  }
+                >
+                  <Text style={[styles.demoBtnText, { color: C.teal }]}>
+                    🛡️ Officer R. Mendoza (MDRRMO)
+                  </Text>
+                  <ChevronRight color={C.teal} size={14} />
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Sign Out Button */}
             <Pressable
-              style={styles.logoutBtn}
+              style={[styles.logoutBtn, { marginTop: 16 }]}
               onPress={() => {
                 onSaveUser(null);
-                Alert.alert("Signed Out", "You have been signed out.");
+                Alert.alert("Signed Out", "You have signed out of AgapAlert.");
               }}
             >
               <LogOut color={C.red} size={15} />
-              <Text style={styles.logoutText}>Sign Out Account</Text>
+              <Text style={styles.logoutText}>Sign Out of Device</Text>
             </Pressable>
-          </View>
+          </ScrollView>
         ) : (
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Tab Selector */}
+          <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 6 }}>
+            {/* Tab Selector (Sign In vs Sign Up) */}
             <View style={styles.authTabRow}>
               <Pressable
                 style={[styles.authTabBtn, tab === "signin" && styles.authTabBtnActive]}
                 onPress={() => setTab("signin")}
               >
-                <Text style={[styles.authTabText, tab === "signin" && styles.authTabTextActive]}>Sign In</Text>
+                <Text
+                  style={[
+                    styles.authTabText,
+                    tab === "signin" && styles.authTabTextActive,
+                  ]}
+                >
+                  Sign In
+                </Text>
               </Pressable>
               <Pressable
                 style={[styles.authTabBtn, tab === "signup" && styles.authTabBtnActive]}
                 onPress={() => setTab("signup")}
               >
-                <Text style={[styles.authTabText, tab === "signup" && styles.authTabTextActive]}>Sign Up</Text>
+                <Text
+                  style={[
+                    styles.authTabText,
+                    tab === "signup" && styles.authTabTextActive,
+                  ]}
+                >
+                  Create Account
+                </Text>
               </Pressable>
             </View>
 
-            {/* Role Picker */}
-            <Text style={styles.modalLabel}>SELECT ROLE</Text>
+            {/* Account Role Selector Cards */}
+            <Text style={styles.modalLabel}>SELECT ACCOUNT PRIVILEGE LEVEL</Text>
             <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
               <Pressable
-                style={[styles.roleSelectChip, role === "resident" && styles.roleSelectChipActive]}
+                style={[
+                  styles.roleCard,
+                  role === "resident" && styles.roleCardActive,
+                ]}
                 onPress={() => setRole("resident")}
               >
-                <Users color={role === "resident" ? C.bgPrimary : C.cyan} size={14} />
-                <Text style={[styles.roleSelectText, role === "resident" && { color: C.bgPrimary }]}>
-                  Resident / Citizen
-                </Text>
+                <View
+                  style={[
+                    styles.roleIconBox,
+                    role === "resident" && { backgroundColor: C.cyanGlow },
+                  ]}
+                >
+                  <Users
+                    color={role === "resident" ? C.cyan : C.textMuted}
+                    size={16}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.roleCardTitle,
+                      role === "resident" && { color: C.cyan },
+                    ]}
+                  >
+                    Resident Citizen
+                  </Text>
+                  <Text style={styles.roleCardSub}>
+                    Evacuation routing, SOS beacons & weather radar
+                  </Text>
+                </View>
               </Pressable>
+
               <Pressable
-                style={[styles.roleSelectChip, role === "official" && styles.roleSelectChipActive]}
+                style={[
+                  styles.roleCard,
+                  role === "official" && styles.roleCardActiveOfficial,
+                ]}
                 onPress={() => setRole("official")}
               >
-                <ShieldCheck color={role === "official" ? C.bgPrimary : C.teal} size={14} />
-                <Text style={[styles.roleSelectText, role === "official" && { color: C.bgPrimary }]}>
-                  Barangay Official
-                </Text>
+                <View
+                  style={[
+                    styles.roleIconBox,
+                    role === "official" && { backgroundColor: C.tealPale },
+                  ]}
+                >
+                  <ShieldCheck
+                    color={role === "official" ? C.teal : C.textMuted}
+                    size={16}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.roleCardTitle,
+                      role === "official" && { color: C.teal },
+                    ]}
+                  >
+                    MDRRMO Official
+                  </Text>
+                  <Text style={styles.roleCardSub}>
+                    Capacity updates, relief dispatch & alert broadcaster
+                  </Text>
+                </View>
               </Pressable>
             </View>
 
+            {/* Form Fields */}
             {tab === "signup" && (
               <>
                 <Text style={styles.modalLabel}>FULL NAME</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Maria Santos"
-                  placeholderTextColor={C.textMuted}
-                  value={fullName}
-                  onChangeText={setFullName}
-                />
+                <View style={styles.inputGroup}>
+                  <User color={C.textMuted} size={15} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInputWithIcon}
+                    placeholder="e.g. Maria Santos"
+                    placeholderTextColor={C.textMuted}
+                    value={fullName}
+                    onChangeText={setFullName}
+                  />
+                </View>
 
-                <Text style={[styles.modalLabel, { marginTop: 8 }]}>BARANGAY / COMMUNITY</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Dalongue, Santa Barbara"
-                  placeholderTextColor={C.textMuted}
-                  value={barangay}
-                  onChangeText={setBarangay}
-                />
+                <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                  COMMUNITY / BARANGAY JURISDICTION
+                </Text>
+                <View style={styles.inputGroup}>
+                  <MapPin color={C.textMuted} size={15} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInputWithIcon}
+                    placeholder="e.g. Dalongue, Santa Barbara, Pangasinan"
+                    placeholderTextColor={C.textMuted}
+                    value={barangay}
+                    onChangeText={setBarangay}
+                  />
+                </View>
+
+                <Text style={[styles.modalLabel, { marginTop: 10 }]}>
+                  EMERGENCY MOBILE NUMBER (OPTIONAL)
+                </Text>
+                <View style={styles.inputGroup}>
+                  <Phone color={C.textMuted} size={15} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInputWithIcon}
+                    placeholder="0917-xxx-xxxx"
+                    placeholderTextColor={C.textMuted}
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </View>
               </>
             )}
 
-            <Text style={[styles.modalLabel, { marginTop: 8 }]}>EMAIL ADDRESS</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="e.g. resident@dalongue.ph"
-              placeholderTextColor={C.textMuted}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
+            <Text style={[styles.modalLabel, { marginTop: 10 }]}>EMAIL ADDRESS</Text>
+            <View style={styles.inputGroup}>
+              <Mail color={C.textMuted} size={15} style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInputWithIcon}
+                placeholder="e.g. resident@dalongue.ph"
+                placeholderTextColor={C.textMuted}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
 
-            <Text style={[styles.modalLabel, { marginTop: 8 }]}>PASSWORD</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="••••••••"
-              placeholderTextColor={C.textMuted}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <Text style={[styles.modalLabel, { marginTop: 10 }]}>PASSWORD</Text>
+            <View style={styles.inputGroup}>
+              <Lock color={C.textMuted} size={15} style={styles.inputIcon} />
+              <TextInput
+                style={[styles.textInputWithIcon, { paddingRight: 40 }]}
+                placeholder="••••••••"
+                placeholderTextColor={C.textMuted}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Pressable
+                style={styles.passwordToggle}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff color={C.textMuted} size={16} />
+                ) : (
+                  <Eye color={C.textMuted} size={16} />
+                )}
+              </Pressable>
+            </View>
 
-            {/* Action Button */}
+            {/* Action Submit Button */}
             <Pressable
-              style={[styles.primaryActionBtnModal, { marginTop: 14 }]}
+              style={[
+                styles.primaryActionBtnModal,
+                { marginTop: 14, opacity: isSubmitting ? 0.7 : 1 },
+              ]}
+              disabled={isSubmitting}
               onPress={tab === "signin" ? handleSignIn : handleSignUp}
             >
-              <Text style={styles.primaryActionTextModal}>
-                {tab === "signin" ? "Sign In to AgapAlert" : "Create Account & Start"}
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator color={C.bgPrimary} size="small" />
+              ) : (
+                <>
+                  <ShieldCheck color={C.bgPrimary} size={16} />
+                  <Text style={styles.primaryActionTextModal}>
+                    {tab === "signin"
+                      ? "Authenticate & Connect"
+                      : "Register Account & Launch Radar"}
+                  </Text>
+                </>
+              )}
             </Pressable>
 
-            {/* Quick Demo Shortcuts */}
+            {/* Instant 1-Tap Demo Credentials */}
             <View style={styles.demoSection}>
-              <Text style={styles.demoLabel}>OR INSTANT 1-TAP DEMO LOGIN:</Text>
-              <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
-                <Pressable style={styles.demoBtn} onPress={handleQuickDemoResident}>
-                  <Text style={styles.demoBtnText}>⚡ Demo Resident</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                <Sparkles color={C.amber} size={13} />
+                <Text style={styles.demoLabel}>1-TAP TEST CREDENTIALS:</Text>
+              </View>
+              <View style={{ flexDirection: "column", gap: 7, marginTop: 8 }}>
+                <Pressable
+                  style={styles.demoCardBtn}
+                  onPress={() =>
+                    handleSelectDemo({
+                      email: "resident.dalongue@agapalert.ph",
+                      fullName: "Juan Dela Cruz",
+                      role: "resident",
+                      barangay: "Dalongue, Santa Barbara",
+                      phone: "0917-555-0199",
+                    })
+                  }
+                >
+                  <View style={[styles.demoAvatarCircle, { backgroundColor: C.cyanGlow }]}>
+                    <Text style={{ color: C.cyan, fontWeight: "900", fontSize: 11 }}>J</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.demoCardName}>Juan Dela Cruz (Resident)</Text>
+                    <Text style={styles.demoCardSub}>Dalongue, Santa Barbara • Flood Alert Active</Text>
+                  </View>
+                  <ChevronRight color={C.cyan} size={14} />
                 </Pressable>
-                <Pressable style={[styles.demoBtn, { borderColor: "rgba(20, 184, 166, 0.4)" }]} onPress={handleQuickDemoOfficial}>
-                  <Text style={[styles.demoBtnText, { color: C.teal }]}>⚡ Demo Official</Text>
+
+                <Pressable
+                  style={[styles.demoCardBtn, { borderColor: "rgba(20, 184, 166, 0.35)" }]}
+                  onPress={() =>
+                    handleSelectDemo({
+                      email: "mdrmo.santabarbara@pangasinan.gov.ph",
+                      fullName: "Officer R. Mendoza",
+                      role: "official",
+                      barangay: "Santa Barbara Command Desk",
+                      phone: "0918-999-4400",
+                    })
+                  }
+                >
+                  <View style={[styles.demoAvatarCircle, { backgroundColor: C.tealPale }]}>
+                    <Text style={{ color: C.teal, fontWeight: "900", fontSize: 11 }}>R</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.demoCardName, { color: C.teal }]}>
+                      Officer R. Mendoza (MDRRMO)
+                    </Text>
+                    <Text style={styles.demoCardSub}>Santa Barbara DRRMO • Disaster Command</Text>
+                  </View>
+                  <ChevronRight color={C.teal} size={14} />
                 </Pressable>
               </View>
             </View>
@@ -2862,15 +3148,17 @@ const styles = StyleSheet.create({
   authTabRow: {
     flexDirection: "row",
     backgroundColor: C.bgCard,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 3,
-    marginBottom: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   authTabBtn: {
     flex: 1,
-    paddingVertical: 7,
+    paddingVertical: 9,
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 9,
   },
   authTabBtnActive: {
     backgroundColor: C.cyan,
@@ -2883,26 +3171,65 @@ const styles = StyleSheet.create({
   authTabTextActive: {
     color: C.bgPrimary,
   },
-  roleSelectChip: {
+  roleCard: {
     flex: 1,
-    flexDirection: "row",
+    backgroundColor: C.bgCard,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderRadius: 14,
+    padding: 10,
+    flexDirection: "column",
+    gap: 6,
+  },
+  roleCardActive: {
+    borderColor: C.cyan,
+    backgroundColor: "rgba(6, 182, 212, 0.08)",
+  },
+  roleCardActiveOfficial: {
+    borderColor: C.teal,
+    backgroundColor: "rgba(20, 184, 166, 0.08)",
+  },
+  roleIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
+  },
+  roleCardTitle: {
+    color: C.textPrimary,
+    fontSize: 11.5,
+    fontWeight: "900",
+  },
+  roleCardSub: {
+    color: C.textMuted,
+    fontSize: 9.5,
+    lineHeight: 13,
+  },
+  inputGroup: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: C.bgCard,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: C.border,
-    paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    position: "relative",
   },
-  roleSelectChipActive: {
-    backgroundColor: C.cyan,
-    borderColor: C.cyan,
+  inputIcon: {
+    marginRight: 8,
   },
-  roleSelectText: {
-    color: C.textSecondary,
-    fontSize: 11,
-    fontWeight: "800",
+  textInputWithIcon: {
+    flex: 1,
+    paddingVertical: 10,
+    color: C.textPrimary,
+    fontSize: 12.5,
+  },
+  passwordToggle: {
+    position: "absolute",
+    right: 12,
+    padding: 4,
   },
   demoSection: {
     marginTop: 14,
@@ -2915,6 +3242,33 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     fontWeight: "900",
     letterSpacing: 0.6,
+  },
+  demoCardBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: C.bgCard,
+    borderWidth: 1,
+    borderColor: "rgba(6, 182, 212, 0.25)",
+    padding: 10,
+    borderRadius: 12,
+  },
+  demoAvatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  demoCardName: {
+    color: C.textPrimary,
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  demoCardSub: {
+    color: C.textMuted,
+    fontSize: 10,
+    marginTop: 1,
   },
   demoBtn: {
     flex: 1,

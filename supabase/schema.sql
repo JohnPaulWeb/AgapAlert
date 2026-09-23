@@ -321,13 +321,52 @@ insert into public.evacuation_centers (id, barangay_id, name, address, latitude,
   ('c2222222-2222-2222-2222-222222222222', 'b2222222-2222-2222-2222-222222222222', 'Concepcion Elementary School', 'J.P. Rizal St., Concepcion Uno, Marikina City', 14.6543, 121.1084, 200, 132, 'open', '21m Elevation', '(02) 8941-2290', array['Medical Aid', 'High Ground'])
 on conflict (id) do nothing;
 
--- Seed Relief Inventory
-insert into public.relief_inventory (center_id, item_name, stock_status, quantity_notes) values
-  ('c1111111-1111-1111-1111-111111111111', 'Potable Drinking Water', 'stocked', '1,200 Liters on site'),
-  ('c1111111-1111-1111-1111-111111111111', 'Ready-to-Eat Rice Packs', 'stocked', '350 packs'),
-  ('c1111111-1111-1111-1111-111111111111', 'Hygiene & Sanitizing Kits', 'running_low', '45 kits remaining'),
-  ('c1111111-1111-1111-1111-111111111111', 'Infant Formula & Diapers', 'stocked', '60 boxes'),
-  ('c2222222-2222-2222-2222-222222222222', 'Clean Drinking Water', 'running_low', '300 Liters'),
-  ('c2222222-2222-2222-2222-222222222222', 'Thermal Blankets', 'stocked', '150 units'),
-  ('c2222222-2222-2222-2222-222222222222', 'First Aid Supplies', 'stocked', '2 Medical Kits')
-on conflict do nothing;
+-- 7. RIVER GAUGE MONITORING STATIONS & TELEMETRY
+create table if not exists public.river_stations (
+  id uuid primary key default uuid_generate_v4(),
+  station_id text not null unique,
+  station_name text not null,
+  river_basin text not null,
+  barangay_id uuid references public.barangays(id) on delete set null,
+  latitude double precision not null,
+  longitude double precision not null,
+  current_level_meters double precision not null default 0.0,
+  alert_level_meters double precision not null,
+  critical_level_meters double precision not null,
+  trend text not null default 'STABLE' check (trend in ('RISING', 'STABLE', 'FALLING')),
+  rate_of_rise double precision default 0.0,
+  last_updated timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.sensor_readings (
+  id uuid primary key default uuid_generate_v4(),
+  station_id text not null references public.river_stations(station_id) on delete cascade,
+  sensor_type text not null check (sensor_type in ('water_level', 'rain_rate', 'soil_moisture', 'wind_speed')),
+  value double precision not null,
+  unit text not null,
+  recorded_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.river_stations enable row level security;
+alter table public.sensor_readings enable row level security;
+
+create policy "River stations readable by all authenticated users"
+  on public.river_stations for select
+  to authenticated
+  using (true);
+
+create policy "Sensor readings readable by all authenticated users"
+  on public.sensor_readings for select
+  to authenticated
+  using (true);
+
+alter publication supabase_realtime add table public.river_stations;
+alter publication supabase_realtime add table public.sensor_readings;
+
+-- Seed River Gauge Stations
+insert into public.river_stations (id, station_id, station_name, river_basin, barangay_id, latitude, longitude, current_level_meters, alert_level_meters, critical_level_meters, trend, rate_of_rise) values
+  ('s0000000-0000-0000-0000-000000000001', 'sinocalan-sb-01', 'Sinocalan River - Santa Barbara Bridge Gauge', 'Sinocalan River Basin', 'b0000000-0000-0000-0000-000000000001', 16.0034, 120.3850, 5.82, 5.20, 6.80, 'RISING', 0.18),
+  ('s1111111-1111-1111-1111-111111111111', 'marikina-sto-nino-02', 'Marikina River - Sto. Niño Water Level Gauge', 'Marikina River Basin', 'b1111111-1111-1111-1111-111111111111', 14.6339, 121.0963, 16.40, 15.00, 18.00, 'RISING', 0.35),
+  ('s2222222-2222-2222-2222-222222222222', 'pasig-floodway-03', 'Manggahan Floodway - Pasig Sluice Gate', 'Pasig-Manggahan Floodway', 'b5555555-5555-5555-5555-555555555555', 14.5764, 121.0851, 12.80, 13.50, 15.50, 'STABLE', 0.02)
+on conflict (station_id) do nothing;
+
