@@ -57,6 +57,10 @@ import {
   View,
   Linking,
   ActivityIndicator,
+  useWindowDimensions,
+  Platform,
+  KeyboardAvoidingView,
+  Image,
 } from "react-native";
 import {
   setupNotificationHandler,
@@ -542,6 +546,9 @@ export default function App() {
   };
 
   const official = role === "official";
+  const { width, height } = useWindowDimensions();
+  const isSmallScreen = width < 375;
+  const isTablet = width >= 600;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -567,13 +574,15 @@ export default function App() {
 
       {/* 2. Top Command Header with Brand & Auth/Role Badges */}
       <View style={styles.header}>
-        <View style={styles.brandRow}>
-          <View style={styles.brandIcon}>
-            <Text style={styles.brandIconText}>A</Text>
-          </View>
-          <View>
+        <View style={[styles.brandRow, { flexShrink: 1 }]}>
+          <Image
+            source={require("./assets/logo.png")}
+            style={styles.brandIcon}
+            resizeMode="cover"
+          />
+          <View style={{ flexShrink: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={styles.brandTitle}>
+              <Text style={styles.brandTitle} numberOfLines={1}>
                 AGAP<Text style={{ color: C.cyan }}>ALERT</Text>
               </Text>
               <View style={styles.liveChip}>
@@ -581,38 +590,45 @@ export default function App() {
                 <Text style={styles.liveChipText}>LIVE</Text>
               </View>
             </View>
-            <Text style={styles.brandSub}>
-              {official ? "BARANGAY INCIDENT OPERATIONS DESK" : "COMMUNITY SAFETY & EVACUATION"}
+            <Text style={styles.brandSub} numberOfLines={1}>
+              {official ? "BARANGAY INCIDENT DESK" : "COMMUNITY SAFETY & EVACUATION"}
             </Text>
           </View>
         </View>
 
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: isSmallScreen ? 4 : 7, flexShrink: 0 }}>
           {/* User Profile / Sign In Pill */}
           <Pressable
-            style={styles.userBadgeBtn}
+            style={[styles.userBadgeBtn, isSmallScreen && { paddingHorizontal: 6, paddingVertical: 5 }]}
             onPress={() => setShowAuthModal(true)}
           >
             <Users color={C.cyan} size={13} />
-            <Text style={styles.userBadgeText} numberOfLines={1}>
+            <Text
+              style={[styles.userBadgeText, { maxWidth: isSmallScreen ? 50 : 75 }]}
+              numberOfLines={1}
+            >
               {currentUser ? currentUser.fullName.split(" ")[0] : "Sign In"}
             </Text>
           </Pressable>
 
           {/* Role Switcher */}
           <Pressable
-            style={[styles.roleSwitchBtn, official && styles.roleSwitchBtnOfficial]}
+            style={[
+              styles.roleSwitchBtn,
+              official && styles.roleSwitchBtnOfficial,
+              isSmallScreen && { paddingHorizontal: 6, paddingVertical: 5 },
+            ]}
             onPress={() => setShowRoleModal(true)}
           >
             {official ? <ShieldCheck color={C.white} size={14} /> : <Users color={C.cyan} size={14} />}
             <Text style={[styles.roleSwitchText, official && { color: C.white }]}>
-              {official ? "OFFICIAL" : "RESIDENT"}
+              {isSmallScreen ? (official ? "ADM" : "RES") : (official ? "OFFICIAL" : "RESIDENT")}
             </Text>
           </Pressable>
 
           {/* Quick SOS Header Button */}
           <Pressable
-            style={styles.quickSosBtn}
+            style={[styles.quickSosBtn, isSmallScreen && { paddingHorizontal: 8, paddingVertical: 5 }]}
             onPress={() => setShowSosModal(true)}
           >
             <Siren color={C.white} size={15} />
@@ -650,7 +666,15 @@ export default function App() {
 
       {/* 4. Main Scrollable Content */}
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingBottom: Platform.OS === "ios" ? 130 : 100,
+            maxWidth: isTablet ? 720 : "100%",
+            alignSelf: "center",
+            width: "100%",
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
         keyboardShouldPersistTaps="handled"
@@ -768,7 +792,7 @@ export default function App() {
                 Low-lying riverside communities in Barangay Dalongue and nearby Santa Barbara corridors are advised to evacuate immediately to Dalongue Barangay Hall or Central Elementary Gym.
               </Text>
 
-              <View style={styles.actionBtnRow}>
+              <View style={[styles.actionBtnRow, isSmallScreen && { flexDirection: "column" }]}>
                 <Pressable
                   style={styles.primaryActionBtn}
                   onPress={() => setSelectedCenter(centers[0])}
@@ -988,7 +1012,17 @@ export default function App() {
       </ScrollView>
 
       {/* 5. Floating Bottom Navigation */}
-      <View style={styles.bottomNav}>
+      <View
+        style={[
+          styles.bottomNav,
+          {
+            paddingBottom: Platform.OS === "ios" ? 20 : 6,
+            height: Platform.OS === "ios" ? 78 : 66,
+            maxWidth: isTablet ? 600 : "100%",
+            alignSelf: "center",
+          },
+        ]}
+      >
         <NavBtn
           icon={<Radio size={19} color={screen === "radar" ? C.cyan : C.textMuted} />}
           label="Live Radar"
@@ -1063,7 +1097,7 @@ export default function App() {
       {/* 9. Evac Center Details Modal */}
       <Modal visible={!!selectedCenter} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { maxHeight: height < 700 ? "95%" : "88%" }]}>
             <View style={styles.modalHead}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.modalTag}>VERIFIED EVACUATION CENTER</Text>
@@ -1094,7 +1128,7 @@ export default function App() {
               ))}
             </View>
 
-            <View style={styles.modalActionRow}>
+            <View style={[styles.modalActionRow, isSmallScreen && { flexDirection: "column" }]}>
               <Pressable
                 style={styles.outlineActionBtn}
                 onPress={() => {
@@ -1360,9 +1394,14 @@ function AuthModal({
     );
   };
 
+  const { width, height } = useWindowDimensions();
+
   return (
-    <View style={styles.modalBackdrop}>
-      <View style={[styles.modalSheet, { maxHeight: "92%" }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.modalBackdrop}
+    >
+      <View style={[styles.modalSheet, { maxHeight: height < 700 ? "96%" : "90%" }]}>
         {/* Modal Header */}
         <View style={styles.modalHead}>
           <View style={{ flex: 1 }}>
@@ -1788,7 +1827,7 @@ function AuthModal({
           </ScrollView>
         )}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1852,9 +1891,14 @@ function EmergencySosModal({
     { label: "Roof Level (>2m)", icon: "🏠" },
   ];
 
+  const { width, height } = useWindowDimensions();
+
   return (
-    <View style={styles.modalBackdrop}>
-      <View style={[styles.modalSheet, { borderColor: C.red, borderWidth: 1.5 }]}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.modalBackdrop}
+    >
+      <View style={[styles.modalSheet, { borderColor: C.red, borderWidth: 1.5, maxHeight: height < 700 ? "96%" : "90%" }]}>
         <View style={styles.modalHead}>
           <View>
             <Text style={[styles.modalTag, { color: C.red }]}>EMERGENCY RESCUE BEACON</Text>
@@ -1865,7 +1909,11 @@ function EmergencySosModal({
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ maxHeight: height < 700 ? 340 : 440 }}
+        >
           {/* Location Permission Box */}
           <View style={styles.sosLocationBox}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -1978,7 +2026,7 @@ function EmergencySosModal({
           </Pressable>
         </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1996,9 +2044,11 @@ function ResponderSosModal({
   onAccept: () => void;
   onDecline: (reason: string) => void;
 }) {
+  const { width, height } = useWindowDimensions();
+
   return (
     <View style={styles.modalBackdrop}>
-      <View style={[styles.modalSheet, { borderColor: C.cyan, borderWidth: 1.5 }]}>
+      <View style={[styles.modalSheet, { borderColor: C.cyan, borderWidth: 1.5, maxHeight: height < 700 ? "95%" : "88%" }]}>
         <View style={styles.modalHead}>
           <View>
             <Text style={[styles.modalTag, { color: C.cyan }]}>RESPONDER ACTION DESK</Text>
@@ -2009,66 +2059,68 @@ function ResponderSosModal({
           </Pressable>
         </View>
 
-        <View style={styles.responderSosCard}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
-            <Siren color={C.red} size={16} />
-            <Text style={{ color: C.red, fontWeight: "900", fontSize: 13 }}>URGENT FLOOD RESCUE</Text>
-          </View>
-          <Text style={styles.responderSosTitle}>{report.title}</Text>
-          <Text style={styles.responderSosLoc}>📍 {report.location}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={styles.responderSosCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <Siren color={C.red} size={16} />
+              <Text style={{ color: C.red, fontWeight: "900", fontSize: 13 }}>URGENT FLOOD RESCUE</Text>
+            </View>
+            <Text style={styles.responderSosTitle}>{report.title}</Text>
+            <Text style={styles.responderSosLoc}>📍 {report.location}</Text>
 
-          <View style={styles.reportMetaRow}>
-            {report.waterDepth && (
-              <Text style={styles.reportMetaPill}>🌊 {report.waterDepth}</Text>
+            <View style={styles.reportMetaRow}>
+              {report.waterDepth && (
+                <Text style={styles.reportMetaPill}>🌊 {report.waterDepth}</Text>
+              )}
+              {report.strandedCount && (
+                <Text style={[styles.reportMetaPill, { color: "#FCA5A5", borderColor: C.redBorder }]}>
+                  👥 {report.strandedCount} Stranded Persons
+                </Text>
+              )}
+            </View>
+
+            <Text style={styles.responderSosDetails}>{report.details}</Text>
+
+            {report.contact && (
+              <Pressable
+                style={styles.callVictimBtn}
+                onPress={() => Linking.openURL(`tel:${report.contact}`)}
+              >
+                <Phone color={C.cyan} size={14} />
+                <Text style={styles.callVictimText}>Call Victim: {report.contact}</Text>
+              </Pressable>
             )}
-            {report.strandedCount && (
-              <Text style={[styles.reportMetaPill, { color: "#FCA5A5", borderColor: C.redBorder }]}>
-                👥 {report.strandedCount} Stranded Persons
-              </Text>
-            )}
           </View>
 
-          <Text style={styles.responderSosDetails}>{report.details}</Text>
-
-          {report.contact && (
+          {/* Accept / Decline Action Buttons */}
+          <View style={styles.responderActionGrid}>
             <Pressable
-              style={styles.callVictimBtn}
-              onPress={() => Linking.openURL(`tel:${report.contact}`)}
+              style={styles.acceptRescueBtn}
+              onPress={onAccept}
             >
-              <Phone color={C.cyan} size={14} />
-              <Text style={styles.callVictimText}>Call Victim: {report.contact}</Text>
+              <Check color={C.bgPrimary} size={16} />
+              <Text style={styles.acceptRescueText}>ACCEPT RESCUE (Dispatch Boat)</Text>
             </Pressable>
-          )}
-        </View>
 
-        {/* Accept / Decline Action Buttons */}
-        <View style={styles.responderActionGrid}>
-          <Pressable
-            style={styles.acceptRescueBtn}
-            onPress={onAccept}
-          >
-            <Check color={C.bgPrimary} size={16} />
-            <Text style={styles.acceptRescueText}>ACCEPT RESCUE (Dispatch Boat)</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.declineRescueBtn}
-            onPress={() => {
-              Alert.alert(
-                "Decline & Escalate",
-                "Choose escalation reason for Pangasinan PDRRMO:",
-                [
-                  { text: "Boat Capacity Full", onPress: () => onDecline("Local boat capacity full") },
-                  { text: "Requires Amphibious Truck", onPress: () => onDecline("Requires Heavy Amphibious Truck") },
-                  { text: "Cancel", style: "cancel" },
-                ]
-              );
-            }}
-          >
-            <X color={C.textMuted} size={14} />
-            <Text style={styles.declineRescueText}>DECLINE / ESCALATE (To Provincial)</Text>
-          </Pressable>
-        </View>
+            <Pressable
+              style={styles.declineRescueBtn}
+              onPress={() => {
+                Alert.alert(
+                  "Decline & Escalate",
+                  "Choose escalation reason for Pangasinan PDRRMO:",
+                  [
+                    { text: "Boat Capacity Full", onPress: () => onDecline("Local boat capacity full") },
+                    { text: "Requires Amphibious Truck", onPress: () => onDecline("Requires Heavy Amphibious Truck") },
+                    { text: "Cancel", style: "cancel" },
+                  ]
+                );
+              }}
+            >
+              <X color={C.textMuted} size={14} />
+              <Text style={styles.declineRescueText}>DECLINE / ESCALATE (To Provincial)</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -2096,10 +2148,14 @@ function CreateReportModal({
   const [title, setTitle] = useState("");
   const [loc, setLoc] = useState(locationName);
   const [details, setDetails] = useState("");
+  const { width, height } = useWindowDimensions();
 
   return (
-    <View style={styles.modalBackdrop}>
-      <View style={styles.modalSheet}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.modalBackdrop}
+    >
+      <View style={[styles.modalSheet, { maxHeight: height < 700 ? "96%" : "90%" }]}>
         <View style={styles.modalHead}>
           <Text style={styles.modalTitle}>Submit Incident Report</Text>
           <Pressable style={styles.closeBtn} onPress={onClose}>
@@ -2107,85 +2163,87 @@ function CreateReportModal({
           </Pressable>
         </View>
 
-        <Text style={styles.modalLabel}>INCIDENT TYPE</Text>
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: 8 }}>
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Text style={styles.modalLabel}>INCIDENT TYPE</Text>
+          <View style={{ flexDirection: "row", gap: 6, marginBottom: 8 }}>
+            <Pressable
+              style={[styles.chipBtn, category === "flood" && styles.chipBtnActive]}
+              onPress={() => {
+                setCategory("flood");
+                if (!title) setTitle("Rising flood water near Dalongue");
+              }}
+            >
+              <Text style={[styles.chipText, category === "flood" && { color: C.bgPrimary }]}>🌊 Flood</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.chipBtn, category === "medical" && styles.chipBtnActive]}
+              onPress={() => {
+                setCategory("medical");
+                if (!title) setTitle("Medical evacuation assistance");
+              }}
+            >
+              <Text style={[styles.chipText, category === "medical" && { color: C.bgPrimary }]}>🚑 Medical</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.chipBtn, category === "relief" && styles.chipBtnActive]}
+              onPress={() => {
+                setCategory("relief");
+                if (!title) setTitle("Relief goods & potable water");
+              }}
+            >
+              <Text style={[styles.chipText, category === "relief" && { color: C.bgPrimary }]}>📦 Relief</Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.modalLabel}>TITLE</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g. Waist-deep flood near Dalongue Elementary"
+            placeholderTextColor={C.textMuted}
+            value={title}
+            onChangeText={setTitle}
+          />
+
+          <Text style={[styles.modalLabel, { marginTop: 8 }]}>LOCATION / LANDMARK</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="e.g. Dalongue, Santa Barbara"
+            placeholderTextColor={C.textMuted}
+            value={loc}
+            onChangeText={setLoc}
+          />
+
+          <Text style={[styles.modalLabel, { marginTop: 8 }]}>DETAILS</Text>
+          <TextInput
+            style={[styles.textInput, { height: 70, textAlignVertical: "top" }]}
+            placeholder="Number of families, flood depth, urgent needs..."
+            placeholderTextColor={C.textMuted}
+            multiline
+            value={details}
+            onChangeText={setDetails}
+          />
+
           <Pressable
-            style={[styles.chipBtn, category === "flood" && styles.chipBtnActive]}
+            style={[styles.primaryActionBtnModal, { marginTop: 14 }]}
             onPress={() => {
-              setCategory("flood");
-              if (!title) setTitle("Rising flood water near Dalongue");
+              if (!title || !details) {
+                Alert.alert("Missing Details", "Please enter a title and details.");
+                return;
+              }
+              onSubmit({
+                category,
+                title,
+                location: loc,
+                priority: "HIGH",
+                details,
+              });
             }}
           >
-            <Text style={[styles.chipText, category === "flood" && { color: C.bgPrimary }]}>🌊 Flood</Text>
+            <Text style={styles.primaryActionTextModal}>Submit to Response Desk</Text>
           </Pressable>
-          <Pressable
-            style={[styles.chipBtn, category === "medical" && styles.chipBtnActive]}
-            onPress={() => {
-              setCategory("medical");
-              if (!title) setTitle("Medical evacuation assistance");
-            }}
-          >
-            <Text style={[styles.chipText, category === "medical" && { color: C.bgPrimary }]}>🚑 Medical</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chipBtn, category === "relief" && styles.chipBtnActive]}
-            onPress={() => {
-              setCategory("relief");
-              if (!title) setTitle("Relief goods & potable water");
-            }}
-          >
-            <Text style={[styles.chipText, category === "relief" && { color: C.bgPrimary }]}>📦 Relief</Text>
-          </Pressable>
-        </View>
-
-        <Text style={styles.modalLabel}>TITLE</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g. Waist-deep flood near Dalongue Elementary"
-          placeholderTextColor={C.textMuted}
-          value={title}
-          onChangeText={setTitle}
-        />
-
-        <Text style={[styles.modalLabel, { marginTop: 8 }]}>LOCATION / LANDMARK</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g. Dalongue, Santa Barbara"
-          placeholderTextColor={C.textMuted}
-          value={loc}
-          onChangeText={setLoc}
-        />
-
-        <Text style={[styles.modalLabel, { marginTop: 8 }]}>DETAILS</Text>
-        <TextInput
-          style={[styles.textInput, { height: 70, textAlignVertical: "top" }]}
-          placeholder="Number of families, flood depth, urgent needs..."
-          placeholderTextColor={C.textMuted}
-          multiline
-          value={details}
-          onChangeText={setDetails}
-        />
-
-        <Pressable
-          style={[styles.primaryActionBtnModal, { marginTop: 14 }]}
-          onPress={() => {
-            if (!title || !details) {
-              Alert.alert("Missing Details", "Please enter a title and details.");
-              return;
-            }
-            onSubmit({
-              category,
-              title,
-              location: loc,
-              priority: "HIGH",
-              details,
-            });
-          }}
-        >
-          <Text style={styles.primaryActionTextModal}>Submit to Response Desk</Text>
-        </Pressable>
+        </ScrollView>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -2308,15 +2366,7 @@ const styles = StyleSheet.create({
   brandIcon: {
     width: 36,
     height: 36,
-    borderRadius: 11,
-    backgroundColor: C.cyan,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#06B6D4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 10,
   },
   brandIconText: {
     color: C.bgPrimary,
@@ -3026,15 +3076,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.8)",
     justifyContent: "flex-end",
+    alignItems: "center",
   },
   modalSheet: {
     backgroundColor: C.bgSurface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: C.borderLight,
-    maxHeight: "85%",
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
   },
   modalHead: {
     flexDirection: "row",

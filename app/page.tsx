@@ -1031,9 +1031,11 @@ export default function Page() {
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
             {/* Brand */}
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-teal-400 text-slate-950 shadow-lg shadow-cyan-500/20">
-                <Waves className="h-5 w-5" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="AGAP Alert Logo"
+                className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-lg shadow-cyan-500/20 border border-slate-700/60"
+              />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-base font-semibold tracking-tight text-white">
@@ -1863,7 +1865,7 @@ export default function Page() {
       <footer className="border-t border-slate-800/70">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:px-6">
           <span className="flex items-center gap-2 font-medium">
-            <Waves className="h-3.5 w-3.5 text-cyan-400" />
+            <img src="/logo.png" alt="AGAP Alert Logo" className="h-4 w-4 rounded-md object-cover inline-block" />
             AGAP Alert — Community Disaster & Evacuation Hub
           </span>
           <span>Demonstration interface · Telemetry and incident data are simulated</span>

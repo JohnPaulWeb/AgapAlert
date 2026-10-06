@@ -11,11 +11,19 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Bantay Pilipinas uses your location to show alerts affecting your area.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts.",
-        "UIBackgroundModes": ["location", "remote-notification"]
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ]
       }
     },
     "android": {
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "POST_NOTIFICATIONS"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -28,8 +36,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      ["expo-location", {"locationAlwaysAndWhenInUsePermission": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts."}],
-      ["expo-notifications", {"color": "#087E8B", "sounds": []}]
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#087E8B",
+          "sounds": []
+        }
+      ],
+      "expo-secure-store"
     ]
   }
 }

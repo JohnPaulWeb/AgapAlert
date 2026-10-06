@@ -9,6 +9,8 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  ScrollView,
+  useWindowDimensions,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -765,9 +767,17 @@ export default function MobileGoogleMap({
     } catch (e) {}
   };
 
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const isSmallScreen = windowWidth < 370;
+  const isTablet = windowWidth >= 600;
+
   return (
     <View
-      style={[styles.container, isFullscreen && styles.fullscreenContainer]}
+      style={[
+        styles.container,
+        { height: isFullscreen ? windowHeight - (Platform.OS === "ios" ? 90 : 70) : isTablet ? 450 : isSmallScreen ? 330 : 380 },
+        isFullscreen && styles.fullscreenContainer,
+      ]}
       onTouchStart={() => onTouchMap?.(true)}
       onTouchEnd={() => onTouchMap?.(false)}
       onTouchCancel={() => onTouchMap?.(false)}
@@ -813,8 +823,13 @@ export default function MobileGoogleMap({
           </Pressable>
         </View>
 
-        {/* Quick Filter Chips */}
-        <View style={styles.chipsRow}>
+        {/* Quick Filter Chips (Horizontal Scrollable for all screen widths) */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+          style={{ flexGrow: 0 }}
+        >
           {[
             { id: "all", label: `All (${centers.length})` },
             { id: "open", label: "Open Beds" },
@@ -840,7 +855,7 @@ export default function MobileGoogleMap({
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       {/* 3. Bottom Right Action Controls & Dynamic Compass */}
@@ -1325,6 +1340,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     width: 230,
+    maxWidth: "92%",
     borderWidth: 1,
     borderColor: "rgba(56, 189, 248, 0.4)",
     zIndex: 35,
@@ -1384,6 +1400,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 12,
     width: 200,
+    maxWidth: "92%",
     borderWidth: 1,
     borderColor: "#334155",
     zIndex: 30,
