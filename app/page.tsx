@@ -58,10 +58,12 @@ import {
   Navigation2,
   AlertOctagon,
   BadgeCheck,
+  RotateCcw,
 } from "lucide-react";
 
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { playAudioAlert } from "@/lib/audio";
 
 const InteractiveMap = dynamic(() => import("@/components/InteractiveMap"), {
   ssr: false,
@@ -564,6 +566,10 @@ export default function Page() {
   const [activeSosForResponder, setActiveSosForResponder] = useState<IncidentReport | null>(null);
   const [showResponderSosModal, setShowResponderSosModal] = useState(false);
 
+  // Target route center for map navigation
+  const [targetRouteCenter, setTargetRouteCenter] = useState<EvacCenter | null>(null);
+  const [customGoBagItem, setCustomGoBagItem] = useState("");
+
   // Go Bag Checklist Items
   const [checklist, setChecklist] = useState([
     { id: "c1", label: "3 days potable water (1 gallon/person/day)", checked: true },
@@ -573,6 +579,32 @@ export default function Page() {
     { id: "c5", label: "Important IDs & documents in waterproof zip bags", checked: false },
     { id: "c6", label: "Whistle for signaling rescue boat responders", checked: true },
   ]);
+
+  // Restore session & checklist from localStorage on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const savedUser = localStorage.getItem("agapalert_user");
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        setCurrentUser(u);
+        setRole(u.role);
+      }
+      const savedChecklist = localStorage.getItem("agapalert_checklist");
+      if (savedChecklist) {
+        setChecklist(JSON.parse(savedChecklist));
+      }
+    } catch {}
+  }, []);
+
+  const updateChecklist = (newItems: typeof checklist) => {
+    setChecklist(newItems);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agapalert_checklist", JSON.stringify(newItems));
+      } catch {}
+    }
+  };
 
   // Keep role in sync with currentUser
   useEffect(() => {
@@ -742,34 +774,49 @@ export default function Page() {
   };
 
   const handleQuickDemoLogin = (selectedRole: Role) => {
+    let u: UserProfile;
     if (selectedRole === "official") {
-      setCurrentUser({
+      u = {
         id: "demo-off-1",
         name: "Capt. Rodrigo Soriano",
         email: "official.dalongue@agapalert.ph",
         role: "official",
         barangay: "Dalongue, Santa Barbara",
         phone: "(075) 518-2024",
-      });
+      };
+      setCurrentUser(u);
       setRole("official");
       setToast({ message: "Logged in as Dalongue Barangay Disaster Official & Responder.", tone: "success" });
     } else {
-      setCurrentUser({
+      u = {
         id: "demo-res-1",
         name: "Juan Dela Cruz",
         email: "resident.dalongue@agapalert.ph",
         role: "resident",
         barangay: "Dalongue, Santa Barbara",
         phone: "0917-508-1122",
-      });
+      };
+      setCurrentUser(u);
       setRole("resident");
       setToast({ message: "Logged in as Dalongue Resident.", tone: "success" });
     }
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("agapalert_user", JSON.stringify(u));
+      } catch {}
+    }
+    playAudioAlert("success", soundAlerts);
     setShowAuthModal(false);
   };
 
   const handleSignOut = () => {
     setCurrentUser(null);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("agapalert_user");
+      } catch {}
+    }
+    playAudioAlert("toggle", soundAlerts);
     setToast({ message: "Signed out of session.", tone: "warning" });
   };
 
@@ -809,6 +856,7 @@ export default function Page() {
   // Simulate water level spike
   const triggerSimulationSpike = () => {
     setIsSimulatingSpike(true);
+    playAudioAlert("alarm", soundAlerts);
     setToast({ message: "Simulation active — heavy rainfall inflow into Sinocalan River.", tone: "warning" });
     let step = 0;
     const interval = setInterval(() => {
@@ -820,6 +868,16 @@ export default function Page() {
         setIsSimulatingSpike(false);
       }
     }, 600);
+  };
+
+  // Reset simulation telemetry back to normal baseline
+  const resetSimulation = () => {
+    setLiveRiverLevel(selectedLocation.riverLevel);
+    setLiveRainRate(selectedLocation.rainRate);
+    setLiveWindSpeed(selectedLocation.windSpeed);
+    setIsSimulatingSpike(false);
+    playAudioAlert("success", soundAlerts);
+    setToast({ message: "Telemetry reset to normal baseline observations.", tone: "success" });
   };
 
   // Submit Incident Report
@@ -843,12 +901,14 @@ export default function Page() {
     };
     setReports([newRep, ...reports]);
     setShowReportModal(false);
+    playAudioAlert("success", soundAlerts);
     setToast({ message: "Incident report transmitted to Santa Barbara MDRRMO Desk.", tone: "success" });
   };
 
   // Update report status (Official action)
   const handleUpdateStatus = (id: string, newStatus: IncidentReport["status"]) => {
     setReports(reports.map((r) => (r.id === id ? { ...r, status: newStatus } : r)));
+    playAudioAlert("toggle", soundAlerts);
     setToast({ message: `Incident status updated to ${newStatus}.`, tone: "success" });
   };
 
@@ -877,6 +937,7 @@ export default function Page() {
     };
     setReports([sosItem, ...reports]);
     setShowSosModal(false);
+    playAudioAlert("beacon", soundAlerts);
     setToast({
       message: "🚨 Rescue Beacon Broadcast! Coordinates sent to Santa Barbara WASAR and Dalongue QRT Command.",
       tone: "danger",
@@ -897,6 +958,7 @@ export default function Page() {
       )
     );
     setShowResponderSosModal(false);
+    playAudioAlert("success", soundAlerts);
     setToast({
       message: `Rescue Accepted! Quick Response Boat dispatched to ${activeSosForResponder?.location || "the victim"}.`,
       tone: "success",
@@ -916,6 +978,8 @@ export default function Page() {
           : r
       )
     );
+    setShowResponderSosModal(false);
+    playAudioAlert("warning", soundAlerts);
     setShowResponderSosModal(false);
     setToast({
       message: "Rescue request declined for local boat & forwarded to Provincial Coast Guard Air/Amphibious Command.",
@@ -990,8 +1054,18 @@ export default function Page() {
                 <span className="hidden sm:inline">Go-Bag</span> {checkedCount}/{checklist.length}
               </button>
               <button
-                onClick={() => setSoundAlerts(!soundAlerts)}
+                onClick={() => {
+                  const nextVal = !soundAlerts;
+                  setSoundAlerts(nextVal);
+                  if (nextVal) {
+                    playAudioAlert("toggle", true);
+                    setToast({ message: "Audio alarms & sirens enabled.", tone: "success" });
+                  } else {
+                    setToast({ message: "Audio alarms muted.", tone: "warning" });
+                  }
+                }}
                 aria-label={soundAlerts ? "Mute audio alarms" : "Unmute audio alarms"}
+                title={soundAlerts ? "Mute audio alarms" : "Enable audio alarms"}
                 className="rounded-full border border-slate-700 bg-slate-900/60 p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer"
               >
                 {soundAlerts ? <Volume2 className="h-3.5 w-3.5 text-emerald-400" /> : <VolumeX className="h-3.5 w-3.5" />}
@@ -1192,11 +1266,28 @@ export default function Page() {
             </div>
 
             <div className="mb-4">
-              <div className="flex items-center justify-between text-xs mb-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-1.5">
                 <span className="text-slate-400">Readiness</span>
-                <span className="font-medium tabular-nums text-slate-200">
-                  {checkedCount} of {checklist.length} packed
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium tabular-nums text-slate-200">
+                    {checkedCount} of {checklist.length} packed
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => updateChecklist(checklist.map((c) => ({ ...c, checked: true })))}
+                    className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                  >
+                    Pack All
+                  </button>
+                  <span className="text-slate-600">·</span>
+                  <button
+                    type="button"
+                    onClick={() => updateChecklist(checklist.map((c) => ({ ...c, checked: false })))}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                </div>
               </div>
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
                 <div
@@ -1220,7 +1311,7 @@ export default function Page() {
                     type="checkbox"
                     checked={item.checked}
                     onChange={() => {
-                      setChecklist(checklist.map((c) => (c.id === item.id ? { ...c, checked: !c.checked } : c)));
+                      updateChecklist(checklist.map((c) => (c.id === item.id ? { ...c, checked: !c.checked } : c)));
                     }}
                     className="sr-only"
                   />
@@ -1235,6 +1326,39 @@ export default function Page() {
                 </label>
               ))}
             </div>
+
+            {/* Quick Add Custom Item Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!customGoBagItem.trim()) return;
+                const newItem = {
+                  id: `custom-${Date.now()}`,
+                  label: customGoBagItem.trim(),
+                  checked: true,
+                };
+                updateChecklist([...checklist, newItem]);
+                setCustomGoBagItem("");
+                playAudioAlert("success", soundAlerts);
+                setToast({ message: `Added "${newItem.label}" to your Go-Bag checklist.`, tone: "success" });
+              }}
+              className="mt-3 flex items-center gap-2 max-w-lg"
+            >
+              <input
+                type="text"
+                value={customGoBagItem}
+                onChange={(e) => setCustomGoBagItem(e.target.value)}
+                placeholder="Add custom item (e.g. Infant milk, Pet carrier, Solar power bank)..."
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add Item
+              </button>
+            </form>
           </div>
         </div>
       )}
@@ -1282,6 +1406,14 @@ export default function Page() {
               {isSimulatingSpike ? "Simulating surge…" : "Simulate water rise"}
             </button>
             <button
+              onClick={resetSimulation}
+              title="Reset gauge levels back to calm normal conditions"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white cursor-pointer"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
+              Reset Normal
+            </button>
+            <button
               onClick={() => setShowReportModal(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer"
             >
@@ -1294,7 +1426,14 @@ export default function Page() {
         {/* 4. Live Threat Telemetry Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* River Basin Water Level */}
-          <div className={`${panel} p-5`}>
+          <div
+            onClick={() => {
+              setActiveTab("radar");
+              playAudioAlert("toggle", soundAlerts);
+            }}
+            className={`${panel} p-5 cursor-pointer transition hover:border-cyan-500/50 hover:bg-slate-900`}
+            title="Click to view live river telemetry on map"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
@@ -1340,7 +1479,17 @@ export default function Page() {
           </div>
 
           {/* Typhoon Wind */}
-          <div className={`${panel} p-5`}>
+          <div
+            onClick={() => {
+              setToast({
+                message: `PAGASA Tropical Storm Signal ${selectedLocation.stormSignal}: Wind gusts recorded at ${liveWindSpeed} km/h.`,
+                tone: "warning",
+              });
+              playAudioAlert("toggle", soundAlerts);
+            }}
+            className={`${panel} p-5 cursor-pointer transition hover:border-teal-500/50 hover:bg-slate-900`}
+            title="Click to view PAGASA wind advisory"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-teal-500/20 bg-teal-500/10 text-teal-400">
@@ -1364,7 +1513,17 @@ export default function Page() {
           </div>
 
           {/* Rainfall Intensity */}
-          <div className={`${panel} p-5`}>
+          <div
+            onClick={() => {
+              setToast({
+                message: `PAGASA Doppler: Current rain rate is ${liveRainRate} mm/h. Flash flood danger is elevated in low-lying zones.`,
+                tone: liveRainRate >= 25 ? "danger" : "warning",
+              });
+              playAudioAlert("toggle", soundAlerts);
+            }}
+            className={`${panel} p-5 cursor-pointer transition hover:border-blue-500/50 hover:bg-slate-900`}
+            title="Click to view Doppler precipitation status"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
@@ -1391,7 +1550,14 @@ export default function Page() {
           </div>
 
           {/* Safe Haven Capacity */}
-          <div className={`${panel} p-5`}>
+          <div
+            onClick={() => {
+              setActiveTab("centers");
+              playAudioAlert("toggle", soundAlerts);
+            }}
+            className={`${panel} p-5 cursor-pointer transition hover:border-emerald-500/50 hover:bg-slate-900`}
+            title="Click to view all open evacuation shelters"
+          >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
@@ -1454,6 +1620,7 @@ export default function Page() {
                 onSelectCenter={(center) => setSelectedCenter(center)}
                 onRequestSos={() => setShowSosModal(true)}
                 onReportHazard={() => setShowReportModal(true)}
+                targetRouteCenter={targetRouteCenter}
               />
             </div>
 
@@ -1474,7 +1641,13 @@ export default function Page() {
                 </p>
                 <div className="mt-4 space-y-2">
                   <button
-                    onClick={() => setSelectedCenter(centers[0])}
+                    onClick={() => {
+                      const nearest = centers[0];
+                      setTargetRouteCenter(nearest);
+                      setActiveTab("radar");
+                      playAudioAlert("toggle", soundAlerts);
+                      setToast({ message: `Plotting safe route to ${nearest.name} on the live map.`, tone: "success" });
+                    }}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
                   >
                     <Navigation className="h-4 w-4" />
@@ -1652,8 +1825,9 @@ export default function Page() {
                       </button>
                       <button
                         onClick={() => {
-                          setSelectedCenter(center);
+                          setTargetRouteCenter(center);
                           setActiveTab("radar");
+                          playAudioAlert("toggle", soundAlerts);
                           setToast({ message: `Routing to ${center.name} on the live map.`, tone: "success" });
                         }}
                         className="inline-flex items-center justify-center gap-1 rounded-lg bg-cyan-500 py-2 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
@@ -2469,15 +2643,30 @@ export default function Page() {
                 </a>
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const c = selectedCenter;
+                    setSelectedCenter(null);
+                    setTargetRouteCenter(c);
+                    setActiveTab("radar");
+                    playAudioAlert("toggle", soundAlerts);
+                    setToast({ message: `Plotting safe route to ${c.name} on the live map.`, tone: "success" });
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400 cursor-pointer"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  Plot on Live Map
+                </button>
                 <a
                   href={`https://www.google.com/maps/dir/?api=1&destination=${selectedCenter.lat},${selectedCenter.lng}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-cyan-400"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
                 >
-                  <Navigation className="h-3.5 w-3.5" />
-                  Navigate via Google Maps ↗
+                  <ExternalLink className="h-3.5 w-3.5 text-cyan-400" />
+                  Google Maps ↗
                 </a>
               </div>
             </div>

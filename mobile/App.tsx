@@ -481,6 +481,14 @@ export default function App() {
     }, 600);
   };
 
+  const resetSimulation = () => {
+    setLiveRiverLevel(selectedLoc.riverLevel);
+    setLiveRainRate(selectedLoc.rainRate);
+    setLiveWindSpeed(selectedLoc.windSpeed);
+    setIsSimulatingSpike(false);
+    Alert.alert("Simulation Reset", "River and rainfall levels returned to normal baseline.");
+  };
+
   const handleCreateReport = (newRep: Omit<IncidentReport, "id" | "timestamp" | "status">) => {
     const latOffset = (Math.random() - 0.5) * 0.006;
     const lngOffset = (Math.random() - 0.5) * 0.006;
@@ -702,8 +710,16 @@ export default function App() {
           >
             <Flame color={C.amber} size={14} />
             <Text style={styles.simSpikeText}>
-              {isSimulatingSpike ? "Rising..." : "Water Surge Test"}
+              {isSimulatingSpike ? "Rising..." : "Water Surge"}
             </Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.simSpikeBtn, { borderColor: C.border }]}
+            onPress={resetSimulation}
+          >
+            <RefreshCw color={C.cyan} size={13} />
+            <Text style={[styles.simSpikeText, { color: C.textPrimary }]}>Reset</Text>
           </Pressable>
         </View>
 

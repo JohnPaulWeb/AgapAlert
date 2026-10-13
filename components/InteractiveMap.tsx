@@ -85,6 +85,7 @@ interface InteractiveMapProps {
   onSelectCenter: (center: MapCenter) => void;
   onRequestSos?: () => void;
   onReportHazard?: () => void;
+  targetRouteCenter?: MapCenter | null;
 }
 
 // Google Maps Raster Tile Layers & Styles
@@ -310,6 +311,7 @@ export default function InteractiveMap({
   onSelectCenter,
   onRequestSos,
   onReportHazard,
+  targetRouteCenter,
 }: InteractiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -495,6 +497,13 @@ export default function InteractiveMap({
       layerGroupsRef.current.activeRoute.clearLayers();
     }
   }, []);
+
+  // Auto-draw route when targetRouteCenter is selected from external triggers (e.g. shelter card, advisory)
+  useEffect(() => {
+    if (targetRouteCenter && mapLoaded) {
+      drawRouteToCenter(targetRouteCenter);
+    }
+  }, [targetRouteCenter, mapLoaded, drawRouteToCenter]);
 
   // Render Google Maps Style Teardrop Markers for Centers
   useEffect(() => {
@@ -910,55 +919,99 @@ export default function InteractiveMap({
         </div>
       )}
 
-      {/* 3. Turn-by-Turn Route Direction Card (Top Right) */}
-      {activeRouteCenter && (
-        <div className="absolute top-4 right-4 z-30 max-w-sm w-full bg-white dark:bg-[#0F172A] rounded-3xl shadow-2xl border border-blue-500/40 p-4 space-y-3 animate-in fade-in slide-in-from-top-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
-                <Navigation className="w-4 h-4 animate-bounce" />
-              </div>
-              <div>
-                <span className="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400">
-                  SAFE HIGH-GROUND ROUTE
-                </span>
-                <h4 className="text-sm font-black text-slate-900 dark:text-white leading-none">
-                  {activeRouteCenter.name}
-                </h4>
-              </div>
-            </div>
+      {/* 3. Top-Right Floating Controls (SOS, Report Hazard, Active Navigation Route) */}
+      <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-2 max-w-sm w-full pointer-events-none">
+        {/* Floating Quick Action Buttons on Map */}
+        <div className="pointer-events-auto flex items-center gap-2">
+          {onRequestSos && (
             <button
-              onClick={clearActiveRoute}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 cursor-pointer"
+              onClick={onRequestSos}
+              className="bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow-xl border border-red-400/50 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur"
+              title="Broadcast Emergency SOS Rescue Beacon"
             >
-              ✕
+              <Siren className="w-4 h-4 animate-pulse" />
+              <span>SOS Beacon</span>
             </button>
-          </div>
+          )}
 
-          <div className="flex items-center gap-4 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-1.5">
-              <Footprints className="w-4 h-4 text-emerald-500" />
-              <span>~{Math.max(6, Math.round(parseFloat(activeRouteCenter.distance) * 11))} min walk</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Car className="w-4 h-4 text-blue-500" />
-              <span>~{Math.max(3, Math.round(parseFloat(activeRouteCenter.distance) * 4))} min drive</span>
-            </div>
-            <span className="ml-auto text-blue-600 dark:text-cyan-400">{activeRouteCenter.distance}</span>
-          </div>
-
-          <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-            <div className="flex items-start gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
-              <span>1. Head northeast towards elevated high-ground ridge corridor.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
-              <span>2. Arrive at <strong>{activeRouteCenter.name}</strong> ({activeRouteCenter.elevation}).</span>
-            </div>
-          </div>
+          {onReportHazard && (
+            <button
+              onClick={onReportHazard}
+              className="bg-white/95 dark:bg-slate-900/95 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-cyan-300 font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl border border-slate-200 dark:border-cyan-500/30 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur"
+              title="Report Flooding or Incident to Command Desk"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              <span className="hidden sm:inline">Report Hazard</span>
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Turn-by-Turn Safe Navigation Route Card */}
+        {activeRouteCenter && (
+          <div className="pointer-events-auto w-full bg-white dark:bg-[#0F172A] rounded-3xl shadow-2xl border border-blue-500/40 p-4 space-y-3 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">
+                  <Navigation className="w-4 h-4 animate-bounce" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase text-blue-600 dark:text-cyan-400">
+                    SAFE HIGH-GROUND ROUTE
+                  </span>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white leading-none">
+                    {activeRouteCenter.name}
+                  </h4>
+                </div>
+              </div>
+              <button
+                onClick={clearActiveRoute}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                title="Clear navigation route"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Travel Mode Toggle Buttons */}
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setTravelMode("walk")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition cursor-pointer ${
+                  travelMode === "walk"
+                    ? "bg-emerald-600 text-white shadow"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Footprints className="w-4 h-4" />
+                <span>~{Math.max(6, Math.round(parseFloat(activeRouteCenter.distance) * 11))} min walk</span>
+              </button>
+              <button
+                onClick={() => setTravelMode("drive")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition cursor-pointer ${
+                  travelMode === "drive"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                }`}
+              >
+                <Car className="w-4 h-4" />
+                <span>~{Math.max(3, Math.round(parseFloat(activeRouteCenter.distance) * 4))} min drive</span>
+              </button>
+              <span className="px-1 text-blue-600 dark:text-cyan-400 font-extrabold">{activeRouteCenter.distance}</span>
+            </div>
+
+            <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-start gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
+                <span>1. Head northeast towards elevated high-ground ridge corridor.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span>
+                <span>2. Arrive at <strong>{activeRouteCenter.name}</strong> ({activeRouteCenter.elevation}).</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* 4. Google Maps Style Layer Switcher Widget (Bottom Left Square) */}
       <div className="absolute bottom-6 left-4 z-30 pointer-events-auto">
