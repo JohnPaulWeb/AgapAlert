@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "AgapAlert",
+    "slug": "agapalert",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Bantay Pilipinas uses your location to show alerts affecting your area.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts.",
+        "NSLocationWhenInUseUsageDescription": "AgapAlert uses your location to show verified flood risks, river water levels, and nearest evacuation shelters in your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "AgapAlert monitors your location in the background to deliver immediate early warnings during flash floods and typhoons.",
         "UIBackgroundModes": [
           "location",
           "remote-notification"
@@ -25,7 +25,7 @@
         "POST_NOTIFICATIONS"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#070F1E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -39,13 +39,13 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Bantay Pilipinas uses your location to deliver nearby flood and typhoon alerts."
+          "locationAlwaysAndWhenInUsePermission": "AgapAlert monitors your location to deliver life-saving flash flood and typhoon warnings."
         }
       ],
       [
         "expo-notifications",
         {
-          "color": "#087E8B",
+          "color": "#06B6D4",
           "sounds": []
         }
       ],

@@ -1,5 +1,9 @@
 -- ==============================================================================
--- AgapAlert: Hydrological & Rain Risk Backend Database Schema
+-- AgapAlert: Hydrological & Rain Risk Subsystem Database Schema
+-- NOTE: The unified, production-ready master schema containing ALL tables
+-- (Barangays, User Profiles, Evacuation Centers, Relief Inventory, Incidents,
+--  Advisories, River Telemetry & Alert Subscriptions) is located at:
+-- supabase/schema.sql
 -- ==============================================================================
 
 create extension if not exists "pgcrypto";

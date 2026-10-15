@@ -1,6 +1,7 @@
 {
-  "name": "my-project",
-  "version": "0.1.0",
+  "name": "agap-alert",
+  "version": "1.0.0",
+  "description": "AgapAlert — Real-time Flood Early Warning, DRRM Telemetry & Evacuation Management System",
   "private": true,
   "scripts": {
     "dev": "next dev",

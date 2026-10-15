@@ -369,4 +369,64 @@ insert into public.river_stations (id, station_id, station_name, river_basin, ba
   ('s1111111-1111-1111-1111-111111111111', 'marikina-sto-nino-02', 'Marikina River - Sto. Niño Water Level Gauge', 'Marikina River Basin', 'b1111111-1111-1111-1111-111111111111', 14.6339, 121.0963, 16.40, 15.00, 18.00, 'RISING', 0.35),
   ('s2222222-2222-2222-2222-222222222222', 'pasig-floodway-03', 'Manggahan Floodway - Pasig Sluice Gate', 'Pasig-Manggahan Floodway', 'b5555555-5555-5555-5555-555555555555', 14.5764, 121.0851, 12.80, 13.50, 15.50, 'STABLE', 0.02)
 on conflict (station_id) do nothing;
+-- 8. ALERTS & PUSH NOTIFICATION SUBSCRIPTION REGISTRY
+create table if not exists public.alerts (
+  id uuid primary key default uuid_generate_v4(),
+  external_id text not null,
+  kind text not null check (kind in ('flash-flood', 'river-overflow', 'heavy-rainfall', 'typhoon', 'landslide-risk')),
+  title text not null,
+  area text not null,
+  description text not null,
+  severity text not null check (severity in ('critical', 'high', 'watch', 'advisory', 'normal')),
+  issued_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  source_url text not null,
+  fingerprint text not null unique,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
 
+create table if not exists public.alert_subscriptions (
+  id uuid primary key default uuid_generate_v4(),
+  device_token text not null unique,
+  latitude double precision not null check (latitude between -90 and 90),
+  longitude double precision not null check (longitude between -180 and 180),
+  radius_km double precision not null default 25 check (radius_km > 0 and radius_km <= 250),
+  flash_floods boolean not null default true,
+  typhoons boolean not null default true,
+  minimum_severity text not null default 'watch' check (minimum_severity in ('critical', 'high', 'watch', 'advisory', 'normal')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create table if not exists public.alert_deliveries (
+  id uuid primary key default uuid_generate_v4(),
+  alert_id uuid not null references public.alerts(id) on delete cascade,
+  subscription_id uuid not null references public.alert_subscriptions(id) on delete cascade,
+  status text not null check (status in ('queued', 'sent', 'failed')),
+  sent_at timestamp with time zone,
+  provider_ticket_id text,
+  unique (alert_id, subscription_id)
+);
+
+-- RLS & Realtime for Alerts
+alter table public.alerts enable row level security;
+alter table public.alert_subscriptions enable row level security;
+alter table public.alert_deliveries enable row level security;
+
+create policy "Alerts readable by all users"
+  on public.alerts for select
+  using (true);
+
+create policy "Subscriptions manageable by device owners"
+  on public.alert_subscriptions for all
+  using (true);
+
+create index if not exists alerts_issued_at_idx on public.alerts (issued_at desc);
+create index if not exists subscriptions_coordinates_idx on public.alert_subscriptions (latitude, longitude);
+
+alter publication supabase_realtime add table public.alerts;
+
+-- Seed Sample Active Alerts
+insert into public.alerts (id, external_id, kind, title, area, description, severity, issued_at, source_url, fingerprint) values
+  ('a0000000-0000-0000-0000-000000000001', 'PAGASA-FFA-2026-0923-01', 'flash-flood', 'Sinocalan River Flash Flood & Overflow Warning', 'Santa Barbara, Calasiao, Dagupan (Pangasinan)', 'Sinocalan River gauge exceeded 5.8m warning threshold. Rapid rainfall inflow detected. Low-lying riverbank barangays are advised to execute preemptive evacuation.', 'critical', now(), 'https://bagong.pagasa.dost.gov.ph', 'sinocalan-alert-2026-0923-01'),
+  ('a0000000-0000-0000-0000-000000000002', 'PAGASA-HRA-2026-0923-02', 'heavy-rainfall', 'PAGASA Orange Rainfall Advisory #04', 'Metro Manila, Rizal, Pangasinan', 'Intense rainfall (15-28 mm/h) observed due to Southwest Monsoon. Flooding threatening low-lying roads and underpasses.', 'high', now(), 'https://bagong.pagasa.dost.gov.ph', 'pagasa-orange-hra-2026-0923-02')
+on conflict (fingerprint) do nothing;

@@ -1,6 +1,7 @@
 {
-  "name": "mobile",
+  "name": "agap-alert-mobile",
   "version": "1.0.0",
+  "description": "AgapAlert Citizen Mobile App — Real-time Flood Warnings, Live Sensor Radar & Evacuation Route Navigation",
   "main": "index.ts",
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

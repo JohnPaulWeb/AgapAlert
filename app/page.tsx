@@ -32,6 +32,7 @@ import {
   Search,
   Send,
   Shield,
+  ShieldAlert,
   ShieldCheck,
   Siren,
   Sparkles,
@@ -391,14 +392,15 @@ const INITIAL_REPORTS: IncidentReport[] = [
   },
 ];
 
-// ---- Shared design tokens ----
-const panel = "rounded-xl border border-slate-800 bg-slate-900/70";
+// ---- Shared Luxury Command Center Design Tokens ----
+const panel = "glass-panel rounded-2xl relative transition-all duration-300 hover:border-white/20";
+const cardElevated = "glass-panel-elevated rounded-2xl relative transition-all duration-300";
 const inputCls =
-  "w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500/40";
+  "w-full rounded-xl border border-white/[0.12] bg-[#070e1c]/80 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none";
 const selectCls =
-  "rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs font-medium text-slate-100 transition focus:border-cyan-500 focus:outline-none cursor-pointer";
+  "rounded-xl border border-white/[0.12] bg-[#070e1c]/90 px-3.5 py-2 text-xs font-semibold text-slate-100 transition hover:border-white/25 focus:border-cyan-400 focus:outline-none cursor-pointer";
 const badge =
-  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-wide";
+  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide shadow-sm";
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "radar", label: "Live Map", icon: Compass },
@@ -440,40 +442,40 @@ const reportStatusMeta: Record<IncidentReport["status"], { icon: LucideIcon; cls
 };
 
 const ribbonMeta: Record<LocationPreset["status"], { wrap: string; dot: string; text: string }> = {
-  Normal: { wrap: "border-emerald-500/25 bg-emerald-950/40", dot: "bg-emerald-400", text: "text-emerald-300" },
-  Watch: { wrap: "border-amber-500/25 bg-amber-950/40", dot: "bg-amber-400", text: "text-amber-300" },
-  Warning: { wrap: "border-orange-500/30 bg-orange-950/40", dot: "bg-orange-400", text: "text-orange-300" },
-  Critical: { wrap: "border-red-500/35 bg-red-950/50", dot: "bg-red-400", text: "text-red-300" },
+  Normal: { wrap: "border-emerald-500/30 bg-emerald-950/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]", dot: "bg-emerald-400 shadow-[0_0_8px_#10B981]", text: "text-emerald-300" },
+  Watch: { wrap: "border-amber-500/30 bg-amber-950/50 shadow-[0_0_20px_rgba(245,158,11,0.15)]", dot: "bg-amber-400 shadow-[0_0_8px_#F59E0B]", text: "text-amber-300" },
+  Warning: { wrap: "border-orange-500/40 bg-orange-950/60 shadow-[0_0_25px_rgba(249,115,22,0.2)]", dot: "bg-orange-400 shadow-[0_0_8px_#F97316]", text: "text-orange-200" },
+  Critical: { wrap: "border-rose-500/50 bg-rose-950/70 shadow-[0_0_30px_rgba(244,63,94,0.3)]", dot: "bg-rose-500 shadow-[0_0_10px_#F43F5E]", text: "text-rose-100" },
 };
 
 const advisoryMeta = [
   {
     title: "Conditions Normal",
     body: "No flood threat at the current water level. Continue monitoring official advisories.",
-    card: "border-emerald-500/30 bg-emerald-950/20",
+    card: "border-emerald-500/30 bg-emerald-950/30 shadow-[0_4px_20px_rgba(16,185,129,0.12)] backdrop-blur-xl",
     accent: "text-emerald-400",
-    chip: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+    chip: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 font-semibold",
   },
   {
     title: "Monitor Flood Conditions",
     body: "Water level is approaching the warning threshold. Prepare to evacuate if conditions worsen.",
-    card: "border-amber-500/30 bg-amber-950/20",
+    card: "border-amber-500/30 bg-amber-950/30 shadow-[0_4px_20px_rgba(245,158,11,0.12)] backdrop-blur-xl",
     accent: "text-amber-400",
-    chip: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+    chip: "border-amber-500/40 bg-amber-500/15 text-amber-300 font-semibold",
   },
   {
     title: "Preparatory Evacuation Advised",
     body: "Residents in low-lying and riverside areas should evacuate to high-ground centers now.",
-    card: "border-orange-500/30 bg-orange-950/20",
+    card: "border-orange-500/40 bg-orange-950/35 shadow-[0_4px_25px_rgba(249,115,22,0.15)] backdrop-blur-xl",
     accent: "text-orange-400",
-    chip: "border-orange-500/30 bg-orange-500/15 text-orange-300",
+    chip: "border-orange-500/40 bg-orange-500/15 text-orange-200 font-semibold",
   },
   {
     title: "Forced Evacuation in Effect",
     body: "Immediate evacuation required. Move to the nearest high-ground center and avoid waterlogged roads.",
-    card: "border-red-500/40 bg-red-950/25",
-    accent: "text-red-400",
-    chip: "border-red-500/40 bg-red-500/15 text-red-300",
+    card: "border-rose-500/50 bg-rose-950/40 shadow-[0_4px_30px_rgba(244,63,94,0.2)] backdrop-blur-xl",
+    accent: "text-rose-400",
+    chip: "border-rose-500/50 bg-rose-500/20 text-rose-200 font-semibold",
   },
 ];
 
@@ -536,6 +538,26 @@ export default function Page() {
   const [soundAlerts, setSoundAlerts] = useState(true);
   const [isSimulatingSpike, setIsSimulatingSpike] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState("Just now");
+
+  // Live Philippine Standard Time (UTC+8) Clock
+  const [pstClock, setPstClock] = useState("");
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setPstClock(
+        now.toLocaleTimeString("en-PH", {
+          timeZone: "Asia/Manila",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }) + " PST"
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Data state
   const [centers] = useState<EvacCenter[]>(INITIAL_CENTERS);
@@ -1101,46 +1123,54 @@ export default function Page() {
         )}
 
         {/* 2. Header */}
-        <header className="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
+        <header className="border-b border-white/[0.08] bg-[#050b14]/85 backdrop-blur-2xl">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
             {/* Brand */}
-            <div className="flex min-w-0 items-center gap-3">
-              <img
-                src="/logo.png"
-                alt="AGAP Alert Logo"
-                className="h-9 w-9 shrink-0 rounded-xl object-cover shadow-lg shadow-cyan-500/20 border border-slate-700/60"
-              />
+            <div className="flex min-w-0 items-center gap-3.5">
+              <div className="relative">
+                <img
+                  src="/logo.png"
+                  alt="AGAP Alert Logo"
+                  className="h-10 w-10 shrink-0 rounded-2xl object-cover shadow-lg shadow-cyan-500/20 border border-cyan-500/30 ring-2 ring-cyan-500/20"
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 border-2 border-[#050b14]"></span>
+                </span>
+              </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-semibold tracking-tight text-white">
-                    AGAP <span className="text-cyan-400">Alert</span>
+                  <span className="font-display text-lg font-extrabold tracking-tight text-white">
+                    AGAP <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-200 bg-clip-text text-transparent">Alert</span>
                   </span>
-                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                    Santa Barbara Dalongue
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-300 shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    DRRM Early Warning
                   </span>
                 </div>
-                <p className="hidden truncate text-[11px] text-slate-500 md:block">
-                  {official ? "Santa Barbara MDRRMO Operations Command" : "Community Disaster & Flood Evacuation Desk"}
+                <p className="hidden truncate text-[11px] font-medium text-slate-400 md:block">
+                  {official ? "Santa Barbara MDRRMO Operations Command Console" : "Unified Hydrological Early Warning & Evacuation Desk"}
                 </p>
               </div>
             </div>
 
             {/* Desktop navigation */}
-            <nav className="hidden md:flex items-center gap-1 rounded-xl border border-slate-800 bg-slate-900/70 p-1">
+            <nav className="hidden md:flex items-center gap-1.5 rounded-2xl border border-white/[0.08] bg-[#0b1526]/70 p-1.5 backdrop-blur-xl shadow-inner">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   aria-current={activeTab === tab.id ? "page" : undefined}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium transition cursor-pointer ${
-                    activeTab === tab.id ? "bg-slate-800 text-white shadow-sm" : "text-slate-400 hover:text-slate-200"
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                    activeTab === tab.id
+                      ? "border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-teal-500/15 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                      : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
                   }`}
                 >
-                  <tab.icon className="h-3.5 w-3.5" />
+                  <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? "text-cyan-400" : "text-slate-400"}`} />
                   {tab.label}
                   {tab.id === "reports" && newReportCount > 0 && (
-                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm">
                       {newReportCount}
                     </span>
                   )}
@@ -1150,22 +1180,33 @@ export default function Page() {
 
             {/* Auth, Role switcher + SOS */}
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {/* Real-time PST Clock Badge */}
+              {pstClock && (
+                <div className="hidden xl:flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 font-mono">
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span>{pstClock}</span>
+                </div>
+              )}
+
               {/* User Sign In / Profile */}
               {currentUser ? (
-                <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 p-1 text-xs">
+                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-1 text-xs">
                   <div className="flex items-center gap-1.5 px-2">
                     <div className="h-6 w-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-[10px]">
                       {currentUser.name.charAt(0)}
                     </div>
                     <div className="hidden lg:block text-left">
                       <p className="text-[11px] font-semibold text-white leading-tight">{currentUser.name}</p>
-                      <p className="text-[9px] text-cyan-400 uppercase tracking-wider">{currentUser.role}</p>
+                      <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-mono">{currentUser.role}</p>
                     </div>
                   </div>
                   <button
                     onClick={handleSignOut}
                     title="Sign Out"
-                    className="p-1 text-slate-400 hover:text-red-400 transition cursor-pointer"
+                    className="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                   </button>
@@ -1176,7 +1217,7 @@ export default function Page() {
                     setAuthMode("signin");
                     setShowAuthModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 shadow-sm cursor-pointer"
                 >
                   <LogIn className="h-3.5 w-3.5" />
                   Sign In
@@ -1184,11 +1225,11 @@ export default function Page() {
               )}
 
               {/* Role Toggle */}
-              <div className="hidden sm:flex items-center rounded-lg border border-slate-800 bg-slate-900/70 p-0.5 text-xs">
+              <div className="hidden sm:flex items-center rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-0.5 text-xs">
                 <button
                   onClick={() => setRole("resident")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
-                    role === "resident" ? "bg-slate-800 text-cyan-300" : "text-slate-400 hover:text-slate-200"
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition cursor-pointer ${
+                    role === "resident" ? "bg-white/10 text-cyan-300 shadow-sm" : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <Users className="h-3.5 w-3.5" />
@@ -1196,8 +1237,8 @@ export default function Page() {
                 </button>
                 <button
                   onClick={() => setRole("official")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition cursor-pointer ${
-                    role === "official" ? "bg-slate-800 text-blue-300" : "text-slate-400 hover:text-slate-200"
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition cursor-pointer ${
+                    role === "official" ? "bg-white/10 text-blue-300 shadow-sm" : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
                   <ShieldCheck className="h-3.5 w-3.5" />
@@ -1210,10 +1251,10 @@ export default function Page() {
                   setShowSosModal(true);
                   handleRequestGpsLocation();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white shadow-lg shadow-red-900/40 transition hover:bg-red-500 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-rose-900/50 hover:from-rose-500 hover:to-red-500 active:scale-95 transition-all duration-200 cursor-pointer"
               >
-                <Siren className="h-4 w-4" />
-                SOS
+                <Siren className="h-4 w-4 animate-bounce" />
+                SOS BEACON
               </button>
             </div>
           </div>
@@ -1431,50 +1472,56 @@ export default function Page() {
               setActiveTab("radar");
               playAudioAlert("toggle", soundAlerts);
             }}
-            className={`${panel} p-5 cursor-pointer transition hover:border-cyan-500/50 hover:bg-slate-900`}
+            className={`${cardElevated} p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+              liveRiverLevel >= 6.0 ? "hover:border-rose-400/50 hover:shadow-rose-500/20" : "hover:border-cyan-400/50 hover:shadow-cyan-500/20"
+            }`}
             title="Click to view live river telemetry on map"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
-                  <Waves className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-sm shadow-cyan-500/20">
+                  <Waves className="h-4.5 w-4.5" />
                 </div>
-                <span className="text-xs font-medium text-slate-400">River Gauge</span>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telemetry</span>
+                  <p className="text-xs font-semibold text-slate-200">River Gauge</p>
+                </div>
               </div>
-              <span className={`${badge} border-slate-700 bg-slate-800/70 text-slate-300`}>
+              <span className={`${badge} border-white/10 bg-white/5 text-slate-200 font-mono`}>
                 {computedAlarmLevel.name}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
-                {liveRiverLevel}
+            <div className="flex items-baseline gap-2">
+              <span className="telemetry-num text-4xl font-extrabold tracking-tight text-white">
+                {liveRiverLevel.toFixed(2)}
               </span>
-              <span className="text-sm font-medium text-slate-500">m</span>
-              <span className={`ml-auto flex items-center gap-1 text-xs font-medium ${trend.cls}`}>
+              <span className="text-sm font-semibold text-slate-400">m</span>
+              <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${trend.cls} bg-white/5 border border-white/10`}>
                 <trend.icon className="h-3.5 w-3.5" />
                 {trend.label}
               </span>
             </div>
 
             <div className="mt-4">
-              <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-slate-900 border border-white/10">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${computedAlarmLevel.bar}`}
+                  className={`h-full rounded-full transition-all duration-500 ${computedAlarmLevel.bar} shadow-sm`}
                   style={{ width: `${gaugePct}%` }}
                 ></div>
-                <span className="absolute top-0 h-full w-px bg-slate-600" style={{ left: "42.9%" }}></span>
-                <span className="absolute top-0 h-full w-px bg-slate-600" style={{ left: "71.4%" }}></span>
+                <span className="absolute top-0 h-full w-0.5 bg-yellow-400/60" style={{ left: "42.9%" }} title="Alarm 1 Threshold"></span>
+                <span className="absolute top-0 h-full w-0.5 bg-rose-500/80" style={{ left: "71.4%" }} title="Critical Threshold"></span>
               </div>
-              <div className="mt-1.5 flex justify-between text-[10px] text-slate-500">
-                <span>Normal 14 m</span>
-                <span>Alarm 2 · 16 m</span>
-                <span>Critical 18 m</span>
+              <div className="mt-1.5 flex justify-between text-[10px] font-medium text-slate-400">
+                <span>Normal 4.5m</span>
+                <span className="text-amber-400">Alarm 6.0m</span>
+                <span className="text-rose-400 font-semibold">Critical 8.0m</span>
               </div>
             </div>
 
-            <p className="mt-3 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
-              Sensor: <span className="font-medium text-slate-300">{selectedLocation.riverName}</span>
+            <p className="mt-3.5 border-t border-white/[0.08] pt-3 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Basin: <strong className="font-semibold text-slate-200">{selectedLocation.riverName}</strong></span>
+              <span className="text-[10px] text-cyan-400 font-mono">Live Stage</span>
             </p>
           </div>
 
@@ -1487,28 +1534,40 @@ export default function Page() {
               });
               playAudioAlert("toggle", soundAlerts);
             }}
-            className={`${panel} p-5 cursor-pointer transition hover:border-teal-500/50 hover:bg-slate-900`}
+            className={`${cardElevated} p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-teal-400/50 hover:shadow-teal-500/20`}
             title="Click to view PAGASA wind advisory"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-teal-500/20 bg-teal-500/10 text-teal-400">
-                  <Wind className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-teal-400 shadow-sm shadow-teal-500/20">
+                  <Wind className="h-4.5 w-4.5" />
                 </div>
-                <span className="text-xs font-medium text-slate-400">Wind Gusts</span>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Atmospheric</span>
+                  <p className="text-xs font-semibold text-slate-200">Wind & Gusts</p>
+                </div>
               </div>
               <span className={`${badge} ${windBadge.cls}`}>{windBadge.label}</span>
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
+            <div className="flex items-baseline gap-2">
+              <span className="telemetry-num text-4xl font-extrabold tracking-tight text-white">
                 {liveWindSpeed}
               </span>
-              <span className="text-sm font-medium text-slate-500">km/h</span>
+              <span className="text-sm font-semibold text-slate-400">km/h</span>
+              <span className="ml-auto rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-xs font-semibold text-cyan-300">
+                TCWS #{selectedLocation.stormSignal}
+              </span>
             </div>
 
-            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
-              PAGASA Tropical Storm <span className="font-medium text-slate-300">Signal {selectedLocation.stormSignal}</span> in effect
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 text-[11px] text-slate-300">
+              <ShieldAlert className="h-4 w-4 text-teal-400 shrink-0" />
+              <span className="truncate">PAGASA TCWS Signal #{selectedLocation.stormSignal} in effect</span>
+            </div>
+
+            <p className="mt-3.5 border-t border-white/[0.08] pt-3 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Velocity status</span>
+              <span className="font-semibold text-teal-300">Monitored</span>
             </p>
           </div>
 
@@ -1521,31 +1580,44 @@ export default function Page() {
               });
               playAudioAlert("toggle", soundAlerts);
             }}
-            className={`${panel} p-5 cursor-pointer transition hover:border-blue-500/50 hover:bg-slate-900`}
+            className={`${cardElevated} p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-blue-400/50 hover:shadow-blue-500/20`}
             title="Click to view Doppler precipitation status"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
-                  <CloudRain className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 shadow-sm shadow-blue-500/20">
+                  <CloudRain className="h-4.5 w-4.5" />
                 </div>
-                <span className="text-xs font-medium text-slate-400">Doppler Rain</span>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hydrology</span>
+                  <p className="text-xs font-semibold text-slate-200">Doppler Rain</p>
+                </div>
               </div>
               <span className={`${badge} ${rainBadge.cls}`}>{rainBadge.label}</span>
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">
+            <div className="flex items-baseline gap-2">
+              <span className="telemetry-num text-4xl font-extrabold tracking-tight text-white">
                 {liveRainRate}
               </span>
-              <span className="text-sm font-medium text-slate-500">mm/h</span>
+              <span className="text-sm font-semibold text-slate-400">mm/h</span>
+              <span className="ml-auto text-[11px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-full px-2 py-0.5">
+                {liveRainRate >= 30 ? "RED WARNING" : liveRainRate >= 15 ? "ORANGE WARNING" : liveRainRate >= 7.5 ? "YELLOW WARNING" : "NORMAL"}
+              </span>
             </div>
 
-            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
-              Flash flood risk:{" "}
-              <span className={`font-medium ${liveRainRate >= 25 ? "text-red-400" : "text-amber-400"}`}>
-                {liveRainRate >= 25 ? "High in low-lying areas" : "Moderate"}
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 text-[11px] text-slate-300">
+              <Radio className="h-4 w-4 text-blue-400 shrink-0" />
+              <span className="truncate">
+                Flash flood risk: <strong className={liveRainRate >= 25 ? "text-rose-400" : "text-amber-400"}>
+                  {liveRainRate >= 25 ? "High (Riverside Evac)" : "Moderate Risk"}
+                </strong>
               </span>
+            </div>
+
+            <p className="mt-3.5 border-t border-white/[0.08] pt-3 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Sensor telemetry</span>
+              <span className="font-semibold text-blue-300">Open-Meteo High-Res</span>
             </p>
           </div>
 
@@ -1555,35 +1627,46 @@ export default function Page() {
               setActiveTab("centers");
               playAudioAlert("toggle", soundAlerts);
             }}
-            className={`${panel} p-5 cursor-pointer transition hover:border-emerald-500/50 hover:bg-slate-900`}
+            className={`${cardElevated} p-5 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400/50 hover:shadow-emerald-500/20`}
             title="Click to view all open evacuation shelters"
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
-                  <Home className="h-4 w-4" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/20">
+                  <Home className="h-4.5 w-4.5" />
                 </div>
-                <span className="text-xs font-medium text-slate-400">Safe Haven</span>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Evacuation</span>
+                  <p className="text-xs font-semibold text-slate-200">Safe Haven</p>
+                </div>
               </div>
               <span
                 className={`${badge} ${
                   spacesLeft > 0
-                    ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
-                    : "border-red-500/30 bg-red-500/15 text-red-300"
+                    ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                    : "border-rose-500/40 bg-rose-500/15 text-rose-300"
                 }`}
               >
-                {spacesLeft > 0 ? "Spaces available" : "At capacity"}
+                {spacesLeft > 0 ? "Spaces Available" : "At Capacity"}
               </span>
             </div>
 
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tabular-nums tracking-tight text-white">{spacesLeft}</span>
-              <span className="text-sm font-medium text-slate-500">spaces left</span>
+            <div className="flex items-baseline gap-2">
+              <span className="telemetry-num text-4xl font-extrabold tracking-tight text-white">{spacesLeft}</span>
+              <span className="text-sm font-semibold text-slate-400">spaces left</span>
+              <span className="ml-auto text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
+                {centersOpen}/{centers.length} Open
+              </span>
             </div>
 
-            <p className="mt-4 border-t border-slate-800/80 pt-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-300">{totalSheltered}</span> evacuees sheltered ·{" "}
-              <span className="font-medium text-slate-300">{centersOpen}/{centers.length}</span> centers open
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 text-[11px] text-slate-300">
+              <Users className="h-4 w-4 text-emerald-400 shrink-0" />
+              <span><strong className="text-white font-semibold">{totalSheltered}</strong> evacuee residents currently housed</span>
+            </div>
+
+            <p className="mt-3.5 border-t border-white/[0.08] pt-3 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Shelter Readiness</span>
+              <span className="font-semibold text-emerald-300">Verified MDRRMO</span>
             </p>
           </div>
         </div>

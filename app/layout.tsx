@@ -3,9 +3,19 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AGAP Alert — Community Disaster & Evacuation Hub',
+  title: 'AgapAlert — Intelligent DRRM Flood Early Warning & Evacuation Command Center',
   description:
-    'Real-time flood telemetry, evacuation shelter availability, incident reporting, and emergency hotlines for Philippine communities.',
+    'Integrated Disaster Risk Reduction & Management Hub: Real-time river basin telemetry, PAGASA color-coded flood risk alerts, evacuation center capacity monitoring, and crowdsourced rescue dispatch for Philippine communities.',
+  keywords: [
+    'AgapAlert',
+    'DRRM',
+    'PAGASA Flood Warning',
+    'Sinocalan River',
+    'Marikina River',
+    'Evacuation Center Philippines',
+    'Early Warning System',
+    'MDRRMO',
+  ],
   icons: {
     icon: [
       {
@@ -26,7 +36,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0b1220',
+  themeColor: '#050b14',
   colorScheme: 'dark',
 }
 
@@ -37,7 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="antialiased">
+      <body className="antialiased bg-[#050b14] text-slate-100 min-h-screen selection:bg-cyan-500/30 selection:text-cyan-100 font-sans">
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
