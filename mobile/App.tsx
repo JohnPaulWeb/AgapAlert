@@ -28,6 +28,7 @@ import {
   Radio,
   RefreshCw,
   Search,
+  Send,
   Settings as SettingsIcon,
   Shield,
   ShieldAlert,
@@ -585,7 +586,7 @@ export default function App() {
       <View style={styles.header}>
         <View style={[styles.brandRow, { flexShrink: 1 }]}>
           <Image
-            source={require("./assets/logo.png")}
+            source={require("./assets/logo-circle.png")}
             style={styles.brandIcon}
             resizeMode="cover"
           />
@@ -631,7 +632,7 @@ export default function App() {
           >
             {official ? <ShieldCheck color={C.white} size={14} /> : <Users color={C.cyan} size={14} />}
             <Text style={[styles.roleSwitchText, official && { color: C.white }]}>
-              {isSmallScreen ? (official ? "ADM" : "RES") : (official ? "OFFICIAL" : "RESIDENT")}
+              {official ? "Official" : "Resident"}
             </Text>
           </Pressable>
 
@@ -697,31 +698,33 @@ export default function App() {
             onPress={() => setShowSectorModal(true)}
           >
             <Compass color={C.cyan} size={18} />
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.microLabel}>MONITORED SECTOR</Text>
-              <Text style={styles.sectorName}>{selectedLoc.name}</Text>
+              <Text style={styles.sectorName} numberOfLines={1}>{selectedLoc.name}</Text>
             </View>
             <ChevronRight color={C.textMuted} size={16} />
           </Pressable>
 
-          <Pressable
-            style={[styles.simSpikeBtn, isSimulatingSpike && { opacity: 0.6 }]}
-            onPress={triggerSimulationSpike}
-            disabled={isSimulatingSpike}
-          >
-            <Flame color={C.amber} size={14} />
-            <Text style={styles.simSpikeText}>
-              {isSimulatingSpike ? "Rising..." : "Water Surge"}
-            </Text>
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <Pressable
+              style={[styles.simSpikeBtn, isSimulatingSpike && { opacity: 0.6 }]}
+              onPress={triggerSimulationSpike}
+              disabled={isSimulatingSpike}
+            >
+              <Flame color={C.amber} size={13} />
+              <Text style={styles.simSpikeText}>
+                {isSimulatingSpike ? "Surging…" : "Surge"}
+              </Text>
+            </Pressable>
 
-          <Pressable
-            style={[styles.simSpikeBtn, { borderColor: C.border }]}
-            onPress={resetSimulation}
-          >
-            <RefreshCw color={C.cyan} size={13} />
-            <Text style={[styles.simSpikeText, { color: C.textPrimary }]}>Reset</Text>
-          </Pressable>
+            <Pressable
+              style={[styles.simSpikeBtn, { borderColor: C.border }]}
+              onPress={resetSimulation}
+            >
+              <RefreshCw color={C.cyan} size={12} />
+              <Text style={[styles.simSpikeText, { color: C.textPrimary }]}>Reset</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Live Telemetry Cards */}
@@ -975,7 +978,7 @@ export default function App() {
                         onPress={() => setShowResponderSosModal(rep)}
                       >
                         <Siren color={C.white} size={13} />
-                        <Text style={styles.sosActionRespondText}>Review SOS (Accept/Decline)</Text>
+                        <Text style={styles.sosActionRespondText}>Review / Dispatch SOS</Text>
                       </Pressable>
                     )}
 
@@ -984,6 +987,7 @@ export default function App() {
                         style={styles.ackBtn}
                         onPress={() => handleUpdateStatus(rep.id, "ACKNOWLEDGED")}
                       >
+                        <Check color={C.amber} size={13} />
                         <Text style={styles.ackBtnText}>Acknowledge</Text>
                       </Pressable>
                     )}
@@ -992,6 +996,7 @@ export default function App() {
                         style={styles.dispatchBtn}
                         onPress={() => handleUpdateStatus(rep.id, "DISPATCHED")}
                       >
+                        <Send color={C.cyan} size={13} />
                         <Text style={styles.dispatchBtnText}>Dispatch Team</Text>
                       </Pressable>
                     )}
@@ -1000,6 +1005,7 @@ export default function App() {
                         style={styles.resolveBtn}
                         onPress={() => handleUpdateStatus(rep.id, "RESOLVED")}
                       >
+                        <CheckCircle2 color={C.green} size={13} />
                         <Text style={styles.resolveBtnText}>Mark Resolved</Text>
                       </Pressable>
                     )}
@@ -2383,7 +2389,9 @@ const styles = StyleSheet.create({
   brandIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "rgba(6, 182, 212, 0.4)",
   },
   brandIconText: {
     color: C.bgPrimary,
@@ -2949,6 +2957,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(245, 158, 11, 0.3)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   ackBtnText: {
     color: C.amber,
@@ -2962,6 +2973,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(6, 182, 212, 0.3)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   dispatchBtnText: {
     color: C.cyan,
@@ -2975,6 +2989,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(16, 185, 129, 0.3)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
   resolveBtnText: {
     color: C.green,

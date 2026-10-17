@@ -31,6 +31,8 @@ import {
   ChevronRight,
   Filter,
   SlidersHorizontal,
+  Plus,
+  Minus,
 } from "lucide-react";
 
 export interface MapCenter {
@@ -539,7 +541,7 @@ export default function InteractiveMap({
               <svg width="38" height="48" viewBox="0 0 38 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 0C8.50659 0 0 8.50659 0 19C0 31.5 19 48 19 48C19 48 38 31.5 38 19C38 8.50659 29.4934 0 19 0Z" fill="${pinColor}"/>
                 <circle cx="19" cy="18" r="14" fill="#ffffff"/>
-                <text x="19" y="22" font-size="13" font-family="system-ui, sans-serif" font-weight="900" text-anchor="middle" fill="${pinColor}">⌂</text>
+                <path d="M14 22V17.5L19 13.5L24 17.5V22H20.5V18.5H17.5V22H14Z" fill="${pinColor}"/>
               </svg>
               <div style="
                 position: absolute;
@@ -674,13 +676,13 @@ export default function InteractiveMap({
               cursor: pointer;
               filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
             ">
-              ${isSos ? `<div style="position: absolute; top: 0; left: 0; width: 32px; height: 32px; border-radius: 50%; background: rgba(234, 67, 53, 0.4); animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>` : ""}
               <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M16 0C7.16344 0 0 7.16344 0 16C0 26.5 16 42 16 42C16 42 32 26.5 32 16C32 7.16344 24.8366 0 16 0Z" fill="${pinColor}"/>
                 <circle cx="16" cy="15" r="11" fill="#ffffff"/>
-                <text x="16" y="19" font-size="11" font-family="system-ui, sans-serif" font-weight="900" text-anchor="middle" fill="${pinColor}">
-                  ${isSos ? "!" : "▲"}
-                </text>
+                ${isSos 
+                  ? `<path d="M16 9.5V15M16 18H16.01" stroke="${pinColor}" stroke-width="2.5" stroke-linecap="round"/>`
+                  : `<path d="M16 9.5L21.5 19H10.5L16 9.5Z" fill="${pinColor}"/><path d="M16 12.8V15.2M16 17H16.01" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>`
+                }
               </svg>
             </div>
           `,
@@ -769,7 +771,7 @@ export default function InteractiveMap({
       isFullscreen ? "fixed inset-0 z-50 rounded-none h-screen w-screen" : "w-full h-[600px] sm:h-[660px]"
     }`}>
       {/* 1. Google Maps Floating Search Bar & Filter Chips (Top Left) */}
-      <div className="absolute top-4 left-4 right-4 sm:right-auto z-30 flex flex-col gap-2 max-w-md w-full pointer-events-none">
+      <div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-30 flex flex-col gap-2 max-w-[calc(100%-110px)] sm:max-w-xs md:max-w-md pointer-events-none">
         {/* Floating Google Maps Style Search Card */}
         <div className="pointer-events-auto bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700/70 p-2 flex items-center gap-2">
           <div className="pl-2 flex items-center text-slate-400">
@@ -920,28 +922,29 @@ export default function InteractiveMap({
       )}
 
       {/* 3. Top-Right Floating Controls (SOS, Report Hazard, Active Navigation Route) */}
-      <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-2 max-w-sm w-full pointer-events-none">
+      <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-1.5 pointer-events-none">
         {/* Floating Quick Action Buttons on Map */}
-        <div className="pointer-events-auto flex items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-1.5">
           {onRequestSos && (
             <button
               onClick={onRequestSos}
-              className="bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-2xl shadow-xl border border-red-400/50 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur"
+              className="bg-red-600 hover:bg-red-500 text-white font-extrabold text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl shadow-xl border border-red-400/50 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur shrink-0"
               title="Broadcast Emergency SOS Rescue Beacon"
             >
-              <Siren className="w-4 h-4 animate-pulse" />
-              <span>SOS Beacon</span>
+              <Siren className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 animate-pulse" />
+              <span className="hidden sm:inline">SOS Beacon</span>
+              <span className="sm:hidden font-black">SOS</span>
             </button>
           )}
 
           {onReportHazard && (
             <button
               onClick={onReportHazard}
-              className="bg-white/95 dark:bg-slate-900/95 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-cyan-300 font-bold text-xs px-3.5 py-2 rounded-2xl shadow-xl border border-slate-200 dark:border-cyan-500/30 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur"
+              className="bg-white/95 dark:bg-slate-900/95 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-cyan-300 font-bold text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl shadow-xl border border-slate-200 dark:border-cyan-500/30 flex items-center gap-1.5 transition hover:scale-105 active:scale-95 cursor-pointer backdrop-blur shrink-0"
               title="Report Flooding or Incident to Command Desk"
             >
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span className="hidden sm:inline">Report Hazard</span>
+              <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-amber-500" />
+              <span className="hidden md:inline">Report Hazard</span>
             </button>
           )}
         </div>
@@ -965,38 +968,38 @@ export default function InteractiveMap({
               </div>
               <button
                 onClick={clearActiveRoute}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 cursor-pointer rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 title="Clear navigation route"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Travel Mode Toggle Buttons */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
               <button
                 onClick={() => setTravelMode("walk")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition cursor-pointer ${
+                className={`flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition whitespace-nowrap cursor-pointer ${
                   travelMode === "walk"
                     ? "bg-emerald-600 text-white shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                <Footprints className="w-4 h-4" />
+                <Footprints className="w-3.5 h-3.5 shrink-0" />
                 <span>~{Math.max(6, Math.round(parseFloat(activeRouteCenter.distance) * 11))} min walk</span>
               </button>
               <button
                 onClick={() => setTravelMode("drive")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition cursor-pointer ${
+                className={`flex-1 min-w-[120px] flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg transition whitespace-nowrap cursor-pointer ${
                   travelMode === "drive"
                     ? "bg-blue-600 text-white shadow"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
-                <Car className="w-4 h-4" />
+                <Car className="w-3.5 h-3.5 shrink-0" />
                 <span>~{Math.max(3, Math.round(parseFloat(activeRouteCenter.distance) * 4))} min drive</span>
               </button>
-              <span className="px-1 text-blue-600 dark:text-cyan-400 font-extrabold">{activeRouteCenter.distance}</span>
+              <span className="px-1.5 py-0.5 text-blue-600 dark:text-cyan-400 font-extrabold text-[11px] whitespace-nowrap">{activeRouteCenter.distance}</span>
             </div>
 
             <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
@@ -1102,18 +1105,20 @@ export default function InteractiveMap({
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
           <button
             onClick={handleZoomIn}
-            className="w-11 h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-lg transition cursor-pointer"
+            className="w-11 h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
             title="Zoom In"
+            aria-label="Zoom in"
           >
-            +
+            <Plus className="w-4 h-4 text-slate-700 dark:text-slate-200" />
           </button>
           <div className="h-px bg-slate-200 dark:bg-slate-700 w-full"></div>
           <button
             onClick={handleZoomOut}
-            className="w-11 h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold text-lg transition cursor-pointer"
+            className="w-11 h-10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
             title="Zoom Out"
+            aria-label="Zoom out"
           >
-            &minus;
+            <Minus className="w-4 h-4 text-slate-700 dark:text-slate-200" />
           </button>
         </div>
 

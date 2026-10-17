@@ -434,7 +434,7 @@ function generateMapHtml(
           '<svg width="36" height="46" viewBox="0 0 38 48" fill="none">' +
           '<path d="M19 0C8.5 0 0 8.5 0 19C0 31.5 19 48 19 48C19 48 38 31.5 38 19C38 8.5 29.5 0 19 0Z" fill="' + color + '"/>' +
           '<circle cx="19" cy="18" r="14" fill="#ffffff"/>' +
-          '<text x="19" y="22" font-size="13" font-family="sans-serif" font-weight="900" text-anchor="middle" fill="' + color + '">⌂</text>' +
+          '<path d="M14 22V17.5L19 13.5L24 17.5V22H20.5V18.5H17.5V22H14Z" fill="' + color + '"/>' +
           '</svg>' +
           '<div class="beds-chip" style="border-color:' + color + '">' + beds + ' beds</div>';
 
@@ -461,12 +461,13 @@ function generateMapHtml(
       data.forEach(function(r) {
         if (!r.lat || !r.lng) return;
         var isSos = r.category === 'sos' || r.priority === 'CRITICAL';
-        var symbol = isSos ? '🚨' : '⚠️';
 
         var el = document.createElement('div');
         el.className = 'incident-pin';
         el.style.backgroundColor = isSos ? '#ef4444' : '#f59e0b';
-        el.innerHTML = symbol;
+        el.innerHTML = isSos
+          ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="10"/></svg>'
+          : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
         var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
           .setLngLat([r.lng, r.lat])
@@ -1154,13 +1155,17 @@ export default function MobileGoogleMap({
               onPress={() => handleOpenGoogleMaps(selectedCenter)}
             >
               <ExternalLink color="#38BDF8" size={15} />
-              <Text style={styles.googleMapsBtnText}>Google Maps ↗</Text>
+              <Text style={styles.googleMapsBtnText}>Google Maps</Text>
             </Pressable>
           </View>
 
           <View style={styles.sheetFooterRow}>
-            <Pressable onPress={() => onSelectCenter(selectedCenter)}>
-              <Text style={styles.sheetFooterLink}>View Full Inventory & Details →</Text>
+            <Pressable
+              style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
+              onPress={() => onSelectCenter(selectedCenter)}
+            >
+              <Text style={styles.sheetFooterLink}>View Full Inventory & Details</Text>
+              <ChevronRight color="#38BDF8" size={13} />
             </Pressable>
             <Pressable
               style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
@@ -1302,35 +1307,37 @@ const styles = StyleSheet.create({
   },
   panBadge: {
     position: "absolute",
-    top: -4,
-    right: -4,
+    top: -5,
+    right: -5,
     backgroundColor: "#10B981",
-    borderRadius: 6,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
+    borderRadius: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
     borderWidth: 1,
     borderColor: "#FFFFFF",
   },
   panBadgeText: {
     color: "#FFFFFF",
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: "900",
+    letterSpacing: 0.3,
   },
   bearingBadge: {
     position: "absolute",
-    top: -4,
-    right: -4,
+    top: -5,
+    right: -5,
     backgroundColor: "#EF4444",
-    borderRadius: 6,
-    paddingHorizontal: 3,
-    paddingVertical: 1,
+    borderRadius: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 1.5,
     borderWidth: 1,
     borderColor: "#FFFFFF",
   },
   bearingBadgeText: {
     color: "#FFFFFF",
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: "900",
+    letterSpacing: 0.3,
   },
   rotateHudCard: {
     position: "absolute",

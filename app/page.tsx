@@ -1070,9 +1070,9 @@ export default function Page() {
             <div className="flex shrink-0 items-center gap-1.5">
               <button
                 onClick={() => setShowChecklistDrawer(!showChecklistDrawer)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+                <ShieldCheck className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
                 <span className="hidden sm:inline">Go-Bag</span> {checkedCount}/{checklist.length}
               </button>
               <button
@@ -1088,9 +1088,9 @@ export default function Page() {
                 }}
                 aria-label={soundAlerts ? "Mute audio alarms" : "Unmute audio alarms"}
                 title={soundAlerts ? "Mute audio alarms" : "Enable audio alarms"}
-                className="rounded-full border border-slate-700 bg-slate-900/60 p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer"
+                className="rounded-full border border-slate-700 bg-slate-900/60 p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer shrink-0"
               >
-                {soundAlerts ? <Volume2 className="h-3.5 w-3.5 text-emerald-400" /> : <VolumeX className="h-3.5 w-3.5" />}
+                {soundAlerts ? <Volume2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <VolumeX className="h-3.5 w-3.5 shrink-0" />}
               </button>
             </div>
           </div>
@@ -1100,11 +1100,11 @@ export default function Page() {
         {activeSosList.length > 0 && (
           <div className="border-b border-red-500/50 bg-red-950/90 py-2 px-4 shadow-lg backdrop-blur">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-xs text-red-200">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white animate-pulse">
-                  <Siren className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-2.5 text-xs text-red-200 min-w-0">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-600 text-white animate-pulse">
+                  <Siren className="h-3.5 w-3.5 shrink-0" />
                 </span>
-                <span className="font-bold text-white tracking-wide uppercase">Active Flood SOS:</span>
+                <span className="font-bold text-white tracking-wide uppercase shrink-0">Active Flood SOS:</span>
                 <span className="truncate max-w-md">
                   {activeSosList[0].title} ({activeSosList[0].location})
                 </span>
@@ -1114,9 +1114,9 @@ export default function Page() {
                   setActiveSosForResponder(activeSosList[0]);
                   setShowResponderSosModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1 text-xs font-bold text-white shadow hover:bg-red-500 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1 text-xs font-bold text-white shadow hover:bg-red-500 cursor-pointer whitespace-nowrap shrink-0"
               >
-                {official ? "Review / Dispatch (Accept/Decline)" : "View Distress Details"}
+                {official ? "Review / Dispatch" : "Distress Details"}
               </button>
             </div>
           </div>
@@ -1126,51 +1126,51 @@ export default function Page() {
         <header className="border-b border-white/[0.08] bg-[#050b14]/85 backdrop-blur-2xl">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6">
             {/* Brand */}
-            <div className="flex min-w-0 items-center gap-3.5">
-              <div className="relative">
+            <div className="flex shrink-0 items-center gap-3">
+              <div className="relative shrink-0">
                 <img
-                  src="/logo.png"
+                  src="/logo-circle.png"
                   alt="AGAP Alert Logo"
-                  className="h-10 w-10 shrink-0 rounded-2xl object-cover shadow-lg shadow-cyan-500/20 border border-cyan-500/30 ring-2 ring-cyan-500/20"
+                  className="h-10 w-10 shrink-0 rounded-full object-cover shadow-lg shadow-cyan-500/20 border border-cyan-500/40 ring-2 ring-cyan-500/20 bg-[#0b1526]"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                <span className="absolute bottom-0 right-0 flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500 border-2 border-[#050b14]"></span>
                 </span>
               </div>
-              <div className="min-w-0">
+              <div className="shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-display text-lg font-extrabold tracking-tight text-white">
+                  <span className="font-display text-lg font-extrabold tracking-tight text-white whitespace-nowrap">
                     AGAP <span className="bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-200 bg-clip-text text-transparent">Alert</span>
                   </span>
-                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-300 shadow-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    DRRM Early Warning
+                  <span className="hidden xl:inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-cyan-300 shadow-sm whitespace-nowrap">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0"></span>
+                    DRRM
                   </span>
                 </div>
-                <p className="hidden truncate text-[11px] font-medium text-slate-400 md:block">
+                <p className="hidden truncate text-[11px] font-medium text-slate-400 2xl:block max-w-[320px]">
                   {official ? "Santa Barbara MDRRMO Operations Command Console" : "Unified Hydrological Early Warning & Evacuation Desk"}
                 </p>
               </div>
             </div>
 
             {/* Desktop navigation */}
-            <nav className="hidden md:flex items-center gap-1.5 rounded-2xl border border-white/[0.08] bg-[#0b1526]/70 p-1.5 backdrop-blur-xl shadow-inner">
+            <nav className="hidden lg:flex items-center gap-1 rounded-2xl border border-white/[0.08] bg-[#0b1526]/70 p-1 backdrop-blur-xl shadow-inner shrink-0">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   aria-current={activeTab === tab.id ? "page" : undefined}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer whitespace-nowrap ${
                     activeTab === tab.id
                       ? "border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-teal-500/15 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
                       : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
                   }`}
                 >
-                  <tab.icon className={`h-4 w-4 ${activeTab === tab.id ? "text-cyan-400" : "text-slate-400"}`} />
+                  <tab.icon className={`h-4 w-4 shrink-0 ${activeTab === tab.id ? "text-cyan-400" : "text-slate-400"}`} />
                   {tab.label}
                   {tab.id === "reports" && newReportCount > 0 && (
-                    <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm">
+                    <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm shrink-0">
                       {newReportCount}
                     </span>
                   )}
@@ -1179,11 +1179,11 @@ export default function Page() {
             </nav>
 
             {/* Auth, Role switcher + SOS */}
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
               {/* Real-time PST Clock Badge */}
               {pstClock && (
-                <div className="hidden xl:flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 font-mono">
-                  <span className="flex h-2 w-2 relative">
+                <div className="hidden 2xl:flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-300 font-mono whitespace-nowrap shrink-0">
+                  <span className="flex h-2 w-2 relative shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
@@ -1193,22 +1193,22 @@ export default function Page() {
 
               {/* User Sign In / Profile */}
               {currentUser ? (
-                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-1 text-xs">
+                <div className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-1 text-xs shrink-0">
                   <div className="flex items-center gap-1.5 px-2">
-                    <div className="h-6 w-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-[10px]">
+                    <div className="h-6 w-6 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-[10px] shrink-0">
                       {currentUser.name.charAt(0)}
                     </div>
-                    <div className="hidden lg:block text-left">
-                      <p className="text-[11px] font-semibold text-white leading-tight">{currentUser.name}</p>
+                    <div className="hidden xl:block text-left">
+                      <p className="text-[11px] font-semibold text-white leading-tight truncate max-w-[90px]">{currentUser.name}</p>
                       <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-mono">{currentUser.role}</p>
                     </div>
                   </div>
                   <button
                     onClick={handleSignOut}
                     title="Sign Out"
-                    className="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                    className="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer shrink-0"
                   >
-                    <LogOut className="h-3.5 w-3.5" />
+                    <LogOut className="h-3.5 w-3.5 shrink-0" />
                   </button>
                 </div>
               ) : (
@@ -1217,31 +1217,31 @@ export default function Page() {
                     setAuthMode("signin");
                     setShowAuthModal(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 shadow-sm cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/20 shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                 >
-                  <LogIn className="h-3.5 w-3.5" />
+                  <LogIn className="h-3.5 w-3.5 shrink-0" />
                   Sign In
                 </button>
               )}
 
               {/* Role Toggle */}
-              <div className="hidden sm:flex items-center rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-0.5 text-xs">
+              <div className="hidden xl:flex items-center rounded-xl border border-white/[0.08] bg-[#0b1526]/80 p-0.5 text-xs shrink-0">
                 <button
                   onClick={() => setRole("resident")}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition cursor-pointer whitespace-nowrap ${
                     role === "resident" ? "bg-white/10 text-cyan-300 shadow-sm" : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <Users className="h-3.5 w-3.5" />
+                  <Users className="h-3.5 w-3.5 shrink-0" />
                   <span>Resident</span>
                 </button>
                 <button
                   onClick={() => setRole("official")}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold transition cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold transition cursor-pointer whitespace-nowrap ${
                     role === "official" ? "bg-white/10 text-blue-300 shadow-sm" : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                   <span>Official</span>
                 </button>
               </div>
@@ -1251,28 +1251,28 @@ export default function Page() {
                   setShowSosModal(true);
                   handleRequestGpsLocation();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-rose-900/50 hover:from-rose-500 hover:to-red-500 active:scale-95 transition-all duration-200 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-bold text-white shadow-lg shadow-rose-900/50 hover:from-rose-500 hover:to-red-500 active:scale-95 transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <Siren className="h-4 w-4 animate-bounce" />
-                SOS BEACON
+                <Siren className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 animate-bounce" />
+                <span>SOS BEACON</span>
               </button>
             </div>
           </div>
 
-          {/* Mobile tabs */}
-          <div className="border-t border-slate-800/70 md:hidden">
+          {/* Mobile and tablet tabs */}
+          <div className="border-t border-slate-800/70 lg:hidden">
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar px-4 py-2">
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   aria-current={activeTab === tab.id ? "page" : undefined}
-                  className={mobileTabCls(activeTab === tab.id)}
+                  className={`${mobileTabCls(activeTab === tab.id)} whitespace-nowrap shrink-0`}
                 >
-                  <tab.icon className="h-3.5 w-3.5" />
+                  <tab.icon className="h-3.5 w-3.5 shrink-0" />
                   {tab.label}
                   {tab.id === "reports" && newReportCount > 0 && (
-                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    <span className="rounded-full bg-red-500/90 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white shrink-0">
                       {newReportCount}
                     </span>
                   )}
@@ -1479,15 +1479,15 @@ export default function Page() {
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-sm shadow-cyan-500/20">
-                  <Waves className="h-4.5 w-4.5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-sm shadow-cyan-500/20">
+                  <Waves className="h-4.5 w-4.5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telemetry</span>
                   <p className="text-xs font-semibold text-slate-200">River Gauge</p>
                 </div>
               </div>
-              <span className={`${badge} border-white/10 bg-white/5 text-slate-200 font-mono`}>
+              <span className={`${badge} border-white/10 bg-white/5 text-slate-200 font-mono shrink-0 whitespace-nowrap`}>
                 {computedAlarmLevel.name}
               </span>
             </div>
@@ -1497,8 +1497,8 @@ export default function Page() {
                 {liveRiverLevel.toFixed(2)}
               </span>
               <span className="text-sm font-semibold text-slate-400">m</span>
-              <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${trend.cls} bg-white/5 border border-white/10`}>
-                <trend.icon className="h-3.5 w-3.5" />
+              <span className={`ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${trend.cls} bg-white/5 border border-white/10 shrink-0 whitespace-nowrap`}>
+                <trend.icon className="h-3.5 w-3.5 shrink-0" />
                 {trend.label}
               </span>
             </div>
@@ -1539,15 +1539,15 @@ export default function Page() {
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-teal-400 shadow-sm shadow-teal-500/20">
-                  <Wind className="h-4.5 w-4.5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-500/30 bg-teal-500/10 text-teal-400 shadow-sm shadow-teal-500/20">
+                  <Wind className="h-4.5 w-4.5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Atmospheric</span>
                   <p className="text-xs font-semibold text-slate-200">Wind & Gusts</p>
                 </div>
               </div>
-              <span className={`${badge} ${windBadge.cls}`}>{windBadge.label}</span>
+              <span className={`${badge} ${windBadge.cls} shrink-0 whitespace-nowrap`}>{windBadge.label}</span>
             </div>
 
             <div className="flex items-baseline gap-2">
@@ -1555,7 +1555,7 @@ export default function Page() {
                 {liveWindSpeed}
               </span>
               <span className="text-sm font-semibold text-slate-400">km/h</span>
-              <span className="ml-auto rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-xs font-semibold text-cyan-300">
+              <span className="ml-auto rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 text-[11px] font-semibold text-cyan-300 shrink-0 whitespace-nowrap">
                 TCWS #{selectedLocation.stormSignal}
               </span>
             </div>
@@ -1585,15 +1585,15 @@ export default function Page() {
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 shadow-sm shadow-blue-500/20">
-                  <CloudRain className="h-4.5 w-4.5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 shadow-sm shadow-blue-500/20">
+                  <CloudRain className="h-4.5 w-4.5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hydrology</span>
                   <p className="text-xs font-semibold text-slate-200">Doppler Rain</p>
                 </div>
               </div>
-              <span className={`${badge} ${rainBadge.cls}`}>{rainBadge.label}</span>
+              <span className={`${badge} ${rainBadge.cls} shrink-0 whitespace-nowrap`}>{rainBadge.label}</span>
             </div>
 
             <div className="flex items-baseline gap-2">
@@ -1601,8 +1601,8 @@ export default function Page() {
                 {liveRainRate}
               </span>
               <span className="text-sm font-semibold text-slate-400">mm/h</span>
-              <span className="ml-auto text-[11px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-full px-2 py-0.5">
-                {liveRainRate >= 30 ? "RED WARNING" : liveRainRate >= 15 ? "ORANGE WARNING" : liveRainRate >= 7.5 ? "YELLOW WARNING" : "NORMAL"}
+              <span className="ml-auto text-[10px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/30 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
+                {liveRainRate >= 30 ? "RED WARNING" : liveRainRate >= 15 ? "ORANGE ALERT" : liveRainRate >= 7.5 ? "YELLOW WATCH" : "NORMAL"}
               </span>
             </div>
 
@@ -1632,8 +1632,8 @@ export default function Page() {
           >
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/20">
-                  <Home className="h-4.5 w-4.5" />
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/20">
+                  <Home className="h-4.5 w-4.5 shrink-0" />
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Evacuation</span>
@@ -1645,7 +1645,7 @@ export default function Page() {
                   spacesLeft > 0
                     ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
                     : "border-rose-500/40 bg-rose-500/15 text-rose-300"
-                }`}
+                } shrink-0 whitespace-nowrap`}
               >
                 {spacesLeft > 0 ? "Spaces Available" : "At Capacity"}
               </span>
@@ -1654,14 +1654,14 @@ export default function Page() {
             <div className="flex items-baseline gap-2">
               <span className="telemetry-num text-4xl font-extrabold tracking-tight text-white">{spacesLeft}</span>
               <span className="text-sm font-semibold text-slate-400">spaces left</span>
-              <span className="ml-auto text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5">
+              <span className="ml-auto text-[11px] font-semibold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
                 {centersOpen}/{centers.length} Open
               </span>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 text-[11px] text-slate-300">
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 text-[11px] text-slate-300 min-w-0">
               <Users className="h-4 w-4 text-emerald-400 shrink-0" />
-              <span><strong className="text-white font-semibold">{totalSheltered}</strong> evacuee residents currently housed</span>
+              <span className="truncate"><strong className="text-white font-semibold">{totalSheltered}</strong> evacuee residents currently housed</span>
             </div>
 
             <p className="mt-3.5 border-t border-white/[0.08] pt-3 text-[11px] text-slate-400 flex items-center justify-between">
@@ -2122,7 +2122,7 @@ export default function Page() {
       <footer className="border-t border-slate-800/70">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:px-6">
           <span className="flex items-center gap-2 font-medium">
-            <img src="/logo.png" alt="AGAP Alert Logo" className="h-4 w-4 rounded-md object-cover inline-block" />
+            <img src="/logo-icon.png" alt="AGAP Alert Logo" className="h-4 w-4 rounded-md object-cover inline-block" />
             AGAP Alert — Community Disaster & Evacuation Hub
           </span>
           <span>Demonstration interface · Telemetry and incident data are simulated</span>
