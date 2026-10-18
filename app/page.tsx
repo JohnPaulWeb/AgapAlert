@@ -17,7 +17,6 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  Flame,
   Home,
   Layers,
   LifeBuoy,
@@ -43,8 +42,6 @@ import {
   TrendingUp,
   Truck,
   Users,
-  Volume2,
-  VolumeX,
   Waves,
   Wind,
   X,
@@ -59,7 +56,6 @@ import {
   Navigation2,
   AlertOctagon,
   BadgeCheck,
-  RotateCcw,
 } from "lucide-react";
 
 import dynamic from "next/dynamic";
@@ -125,74 +121,6 @@ const LOCATIONS: LocationPreset[] = [
     lat: 16.0034,
     lng: 120.3850,
     zoom: 15,
-  },
-  {
-    id: "marikina",
-    name: "Marikina City",
-    region: "Eastern Metro Manila",
-    riverName: "Marikina River",
-    riverLevel: 16.4,
-    riverTrend: "rising",
-    alarmLevel: 2,
-    stormSignal: 3,
-    windSpeed: 88,
-    rainRate: 28,
-    status: "Warning",
-    evacCentersCount: 6,
-    lat: 14.6507,
-    lng: 121.1029,
-    zoom: 14,
-  },
-  {
-    id: "qc",
-    name: "Quezon City (San Mateo)",
-    region: "Northern Metro Manila",
-    riverName: "Tullahan & San Mateo River",
-    riverLevel: 14.8,
-    riverTrend: "stable",
-    alarmLevel: 1,
-    stormSignal: 2,
-    windSpeed: 62,
-    rainRate: 15,
-    status: "Watch",
-    evacCentersCount: 8,
-    lat: 14.676,
-    lng: 121.0437,
-    zoom: 13,
-  },
-  {
-    id: "pasig",
-    name: "Pasig City",
-    region: "Metro Manila Delta",
-    riverName: "Pasig-Manggahan Floodway",
-    riverLevel: 15.6,
-    riverTrend: "rising",
-    alarmLevel: 2,
-    stormSignal: 3,
-    windSpeed: 75,
-    rainRate: 22,
-    status: "Warning",
-    evacCentersCount: 5,
-    lat: 14.5764,
-    lng: 121.0851,
-    zoom: 14,
-  },
-  {
-    id: "cagayan",
-    name: "Tuguegarao, Cagayan",
-    region: "Cagayan Valley",
-    riverName: "Cagayan River Basin",
-    riverLevel: 18.9,
-    riverTrend: "rising",
-    alarmLevel: 3,
-    stormSignal: 4,
-    windSpeed: 140,
-    rainRate: 45,
-    status: "Critical",
-    evacCentersCount: 12,
-    lat: 17.6132,
-    lng: 121.727,
-    zoom: 13,
   },
 ];
 
@@ -531,12 +459,11 @@ export default function Page() {
   const [activeTab, setActiveTab] = useState<Tab>("radar");
   const [selectedLocation, setSelectedLocation] = useState<LocationPreset>(LOCATIONS[0]);
 
-  // Real-time live simulation state
+  // Real-time live status state
   const [liveRiverLevel, setLiveRiverLevel] = useState(LOCATIONS[0].riverLevel);
   const [liveRainRate, setLiveRainRate] = useState(LOCATIONS[0].rainRate);
   const [liveWindSpeed, setLiveWindSpeed] = useState(LOCATIONS[0].windSpeed);
-  const [soundAlerts, setSoundAlerts] = useState(true);
-  const [isSimulatingSpike, setIsSimulatingSpike] = useState(false);
+  const [soundAlerts] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState("Just now");
 
   // Live Philippine Standard Time (UTC+8) Clock
@@ -572,7 +499,6 @@ export default function Page() {
   const [selectedCenter, setSelectedCenter] = useState<EvacCenter | null>(null);
   const [showSosModal, setShowSosModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showChecklistDrawer, setShowChecklistDrawer] = useState(false);
   const [toast, setToast] = useState<{ message: string; tone: ToastTone } | null>(null);
 
   // SOS Resident Form & GPS Location Permission State
@@ -590,19 +516,8 @@ export default function Page() {
 
   // Target route center for map navigation
   const [targetRouteCenter, setTargetRouteCenter] = useState<EvacCenter | null>(null);
-  const [customGoBagItem, setCustomGoBagItem] = useState("");
 
-  // Go Bag Checklist Items
-  const [checklist, setChecklist] = useState([
-    { id: "c1", label: "3 days potable water (1 gallon/person/day)", checked: true },
-    { id: "c2", label: "Non-perishable canned goods & manual opener", checked: true },
-    { id: "c3", label: "Emergency power bank, flashlight & spare batteries", checked: true },
-    { id: "c4", label: "Prescription medicines & First Aid kit", checked: false },
-    { id: "c5", label: "Important IDs & documents in waterproof zip bags", checked: false },
-    { id: "c6", label: "Whistle for signaling rescue boat responders", checked: true },
-  ]);
-
-  // Restore session & checklist from localStorage on mount
+  // Restore session from localStorage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -612,21 +527,8 @@ export default function Page() {
         setCurrentUser(u);
         setRole(u.role);
       }
-      const savedChecklist = localStorage.getItem("agapalert_checklist");
-      if (savedChecklist) {
-        setChecklist(JSON.parse(savedChecklist));
-      }
     } catch {}
   }, []);
-
-  const updateChecklist = (newItems: typeof checklist) => {
-    setChecklist(newItems);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem("agapalert_checklist", JSON.stringify(newItems));
-      } catch {}
-    }
-  };
 
   // Keep role in sync with currentUser
   useEffect(() => {
@@ -873,34 +775,6 @@ export default function Page() {
   const totalSheltered = centers.reduce((acc, c) => acc + c.occupancy, 0);
   const newReportCount = reports.filter((r) => r.status === "NEW").length;
   const activeSosList = reports.filter((r) => r.category === "sos" && r.status !== "RESOLVED");
-  const checkedCount = checklist.filter((c) => c.checked).length;
-
-  // Simulate water level spike
-  const triggerSimulationSpike = () => {
-    setIsSimulatingSpike(true);
-    playAudioAlert("alarm", soundAlerts);
-    setToast({ message: "Simulation active — heavy rainfall inflow into Sinocalan River.", tone: "warning" });
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      setLiveRiverLevel((prev) => Math.round((prev + 0.2) * 100) / 100);
-      setLiveRainRate((prev) => prev + 5);
-      if (step >= 5) {
-        clearInterval(interval);
-        setIsSimulatingSpike(false);
-      }
-    }, 600);
-  };
-
-  // Reset simulation telemetry back to normal baseline
-  const resetSimulation = () => {
-    setLiveRiverLevel(selectedLocation.riverLevel);
-    setLiveRainRate(selectedLocation.rainRate);
-    setLiveWindSpeed(selectedLocation.windSpeed);
-    setIsSimulatingSpike(false);
-    playAudioAlert("success", soundAlerts);
-    setToast({ message: "Telemetry reset to normal baseline observations.", tone: "success" });
-  };
 
   // Submit Incident Report
   const handleCreateReport = (e: React.FormEvent<HTMLFormElement>) => {
@@ -1067,31 +941,9 @@ export default function Page() {
               </span>
               <span className={`shrink-0 font-medium ${ribbon.text}`}>{selectedLocation.status}</span>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                onClick={() => setShowChecklistDrawer(!showChecklistDrawer)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-900/60 px-2.5 py-1 text-[11px] font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <ShieldCheck className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                <span className="hidden sm:inline">Go-Bag</span> {checkedCount}/{checklist.length}
-              </button>
-              <button
-                onClick={() => {
-                  const nextVal = !soundAlerts;
-                  setSoundAlerts(nextVal);
-                  if (nextVal) {
-                    playAudioAlert("toggle", true);
-                    setToast({ message: "Audio alarms & sirens enabled.", tone: "success" });
-                  } else {
-                    setToast({ message: "Audio alarms muted.", tone: "warning" });
-                  }
-                }}
-                aria-label={soundAlerts ? "Mute audio alarms" : "Unmute audio alarms"}
-                title={soundAlerts ? "Mute audio alarms" : "Enable audio alarms"}
-                className="rounded-full border border-slate-700 bg-slate-900/60 p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer shrink-0"
-              >
-                {soundAlerts ? <Volume2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" /> : <VolumeX className="h-3.5 w-3.5 shrink-0" />}
-              </button>
+            <div className="flex shrink-0 items-center gap-2 text-xs font-mono text-slate-300">
+              <Clock className="h-3.5 w-3.5 text-cyan-400" />
+              <span>{pstClock}</span>
             </div>
           </div>
         </div>
@@ -1283,177 +1135,27 @@ export default function Page() {
         </header>
       </div>
 
-      {/* Expandable Emergency Go-Bag Checklist Drawer */}
-      {showChecklistDrawer && (
-        <div className="border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-                  <ShieldCheck className="h-4 w-4 text-cyan-400" />
-                  Emergency Go-Bag Checklist
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Ensure these essentials are ready for immediate evacuation.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowChecklistDrawer(false)}
-                aria-label="Close checklist"
-                className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs mb-1.5">
-                <span className="text-slate-400">Readiness</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium tabular-nums text-slate-200">
-                    {checkedCount} of {checklist.length} packed
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => updateChecklist(checklist.map((c) => ({ ...c, checked: true })))}
-                    className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
-                  >
-                    Pack All
-                  </button>
-                  <span className="text-slate-600">·</span>
-                  <button
-                    type="button"
-                    onClick={() => updateChecklist(checklist.map((c) => ({ ...c, checked: false })))}
-                    className="text-[11px] font-semibold text-slate-400 hover:text-slate-200 underline cursor-pointer"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-cyan-500 transition-all duration-500"
-                  style={{ width: `${(checkedCount / checklist.length) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-              {checklist.map((item) => (
-                <label
-                  key={item.id}
-                  className={`flex items-start gap-3 rounded-lg border p-3 text-sm transition cursor-pointer ${
-                    item.checked
-                      ? "border-cyan-500/40 bg-cyan-500/10 text-cyan-100"
-                      : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={item.checked}
-                    onChange={() => {
-                      updateChecklist(checklist.map((c) => (c.id === item.id ? { ...c, checked: !c.checked } : c)));
-                    }}
-                    className="sr-only"
-                  />
-                  <span
-                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
-                      item.checked ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-600 bg-transparent"
-                    }`}
-                  >
-                    {item.checked && <Check className="h-3 w-3" />}
-                  </span>
-                  <span className="text-xs leading-relaxed">{item.label}</span>
-                </label>
-              ))}
-            </div>
-
-            {/* Quick Add Custom Item Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!customGoBagItem.trim()) return;
-                const newItem = {
-                  id: `custom-${Date.now()}`,
-                  label: customGoBagItem.trim(),
-                  checked: true,
-                };
-                updateChecklist([...checklist, newItem]);
-                setCustomGoBagItem("");
-                playAudioAlert("success", soundAlerts);
-                setToast({ message: `Added "${newItem.label}" to your Go-Bag checklist.`, tone: "success" });
-              }}
-              className="mt-3 flex items-center gap-2 max-w-lg"
-            >
-              <input
-                type="text"
-                value={customGoBagItem}
-                onChange={(e) => setCustomGoBagItem(e.target.value)}
-                placeholder="Add custom item (e.g. Infant milk, Pet carrier, Solar power bank)..."
-                className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-lg transition cursor-pointer"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Add Item
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* 3. Main Dashboard Body */}
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:py-8">
         {/* Top Control Bar: Location Presets & Telemetry Refresh */}
         <div className={`${panel} flex flex-col gap-4 p-4 sm:p-5 md:flex-row md:items-center md:justify-between`}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10 text-cyan-400">
-              <Compass className="h-5 w-5" />
+              <MapPin className="h-5 w-5" />
             </div>
             <div>
               <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Monitoring Sector
               </span>
               <div className="mt-1 flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedLocation.id}
-                  onChange={(e) => {
-                    const found = LOCATIONS.find((l) => l.id === e.target.value);
-                    if (found) setSelectedLocation(found);
-                  }}
-                  aria-label="Select monitoring sector"
-                  className={`${selectCls} font-medium text-sm`}
-                >
-                  {LOCATIONS.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name} — {loc.riverName}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-xs text-slate-500">{selectedLocation.region}</span>
+                <span className="font-semibold text-sm text-white">{selectedLocation.name}</span>
+                <span className="text-xs text-slate-400 font-medium">· {selectedLocation.riverName}</span>
+                <span className="text-xs text-slate-500">({selectedLocation.region})</span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={triggerSimulationSpike}
-              disabled={isSimulatingSpike}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-            >
-              <Flame className="h-4 w-4" />
-              {isSimulatingSpike ? "Simulating surge…" : "Simulate water rise"}
-            </button>
-            <button
-              onClick={resetSimulation}
-              title="Reset gauge levels back to calm normal conditions"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white cursor-pointer"
-            >
-              <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
-              Reset Normal
-            </button>
             <button
               onClick={() => setShowReportModal(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-md shadow-cyan-500/20 transition hover:bg-cyan-400 cursor-pointer"
@@ -1770,27 +1472,7 @@ export default function Page() {
                 </ul>
               </div>
 
-              {/* Go-bag readiness */}
-              <div className={`${panel} p-5`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">Go-Bag readiness</span>
-                  <span className="text-xs tabular-nums text-slate-400">
-                    {checkedCount}/{checklist.length}
-                  </span>
-                </div>
-                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className="h-full rounded-full bg-cyan-500 transition-all duration-500"
-                    style={{ width: `${(checkedCount / checklist.length) * 100}%` }}
-                  ></div>
-                </div>
-                <button
-                  onClick={() => setShowChecklistDrawer(true)}
-                  className="mt-4 w-full rounded-lg border border-slate-700 bg-slate-800/50 py-2 text-xs font-medium text-slate-200 transition hover:bg-slate-800 cursor-pointer"
-                >
-                  Review checklist
-                </button>
-              </div>
+
             </div>
           </div>
         )}

@@ -533,7 +533,6 @@ export default function InteractiveMap({
               position: relative;
               width: 38px;
               height: 48px;
-              transform: translate(-50%, -100%);
               cursor: pointer;
               filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45));
               transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -568,7 +567,10 @@ export default function InteractiveMap({
 
         const marker = L.marker([center.lat, center.lng], { icon: customIcon });
 
-        marker.on("click", () => {
+        marker.on("click", (e) => {
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
           setSelectedPinCenter(center);
           mapInstanceRef.current.flyTo([center.lat, center.lng], 16, { duration: 0.8 });
         });
@@ -672,7 +674,6 @@ export default function InteractiveMap({
               position: relative;
               width: 32px;
               height: 42px;
-              transform: translate(-50%, -100%);
               cursor: pointer;
               filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
             ">
@@ -691,6 +692,15 @@ export default function InteractiveMap({
         });
 
         const marker = L.marker([rep.lat, rep.lng], { icon: repIcon });
+
+        marker.on("click", (e) => {
+          if (e && e.originalEvent) {
+            e.originalEvent.stopPropagation();
+          }
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.flyTo([rep.lat, rep.lng], 16, { duration: 0.8 });
+          }
+        });
 
         marker.bindPopup(`
           <div style="font-family: inherit; min-width: 200px;">
@@ -783,6 +793,15 @@ export default function InteractiveMap({
             placeholder={`Search ${selectedLocation.name} evacuation shelters...`}
             value={mapSearchQuery}
             onChange={(e) => setMapSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filteredMapCenters.length > 0) {
+                const target = filteredMapCenters[0];
+                setSelectedPinCenter(target);
+                if (mapInstanceRef.current) {
+                  mapInstanceRef.current.flyTo([target.lat, target.lng], 16, { duration: 1.0 });
+                }
+              }
+            }}
             className="flex-1 bg-transparent text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none font-medium"
           />
 
@@ -805,6 +824,51 @@ export default function InteractiveMap({
             <Navigation className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Live Search Results Dropdown Panel */}
+        {mapSearchQuery.trim().length > 0 && (
+          <div className="pointer-events-auto max-h-64 overflow-y-auto rounded-2xl bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md shadow-2xl border border-slate-200 dark:border-cyan-500/30 p-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+            <div className="px-2 py-1 flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 border-b border-slate-200/50 dark:border-slate-800 pb-1.5">
+              <span>Matching Shelters ({filteredMapCenters.length})</span>
+              <span className="text-cyan-500 font-semibold lowercase">tap to fly & view</span>
+            </div>
+            {filteredMapCenters.length === 0 ? (
+              <div className="p-3 text-center text-xs text-slate-400">
+                <AlertTriangle className="w-4 h-4 text-amber-400 mx-auto mb-1" />
+                No shelters match "{mapSearchQuery}". Try another keyword or barangay.
+              </div>
+            ) : (
+              filteredMapCenters.map((center) => (
+                <button
+                  key={center.id}
+                  onClick={() => {
+                    setSelectedPinCenter(center);
+                    if (mapInstanceRef.current) {
+                      mapInstanceRef.current.flyTo([center.lat, center.lng], 16, { duration: 1.0 });
+                    }
+                  }}
+                  className="w-full text-left p-2 rounded-xl transition hover:bg-slate-100 dark:hover:bg-cyan-500/10 flex items-center justify-between gap-2 border border-transparent hover:border-cyan-500/20 cursor-pointer group"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-cyan-400">
+                      {center.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      📍 {center.barangay}, {center.city} · {center.distance}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                      center.status === "Open" ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"
+                    }`}>
+                      {center.capacity - center.occupancy} beds
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
         {/* Quick Filter Chips */}
         <div className="pointer-events-auto flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">

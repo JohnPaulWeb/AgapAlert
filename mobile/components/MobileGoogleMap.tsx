@@ -438,12 +438,26 @@ function generateMapHtml(
           '</svg>' +
           '<div class="beds-chip" style="border-color:' + color + '">' + beds + ' beds</div>';
 
-        el.addEventListener('click', function(e) {
-          e.stopPropagation();
+        var touchMoved = false;
+        function handleCenterTap(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          map.flyTo({ center: [c.lng, c.lat], zoom: 15, duration: 800 });
           if (window.ReactNativeWebView) {
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'SELECT_CENTER', centerId: c.id }));
           }
+        }
+
+        el.addEventListener('touchstart', function() { touchMoved = false; }, { passive: true });
+        el.addEventListener('touchmove', function() { touchMoved = true; }, { passive: true });
+        el.addEventListener('touchend', function(e) {
+          if (!touchMoved) {
+            handleCenterTap(e);
+          }
         });
+        el.addEventListener('click', handleCenterTap);
 
         var marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([c.lng, c.lat])
@@ -468,6 +482,34 @@ function generateMapHtml(
         el.innerHTML = isSos
           ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4"/><path d="M12 16h.01"/><circle cx="12" cy="12" r="10"/></svg>'
           : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
+        var repTouchMoved = false;
+        function handleReportTap(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          map.flyTo({ center: [r.lng, r.lat], zoom: 16, duration: 800 });
+          new maplibregl.Popup({ offset: 20, closeButton: true })
+            .setLngLat([r.lng, r.lat])
+            .setHTML(
+              '<div style="font-family: -apple-system, sans-serif; min-width: 170px; padding: 4px;">' +
+              '<span style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: ' + (isSos ? '#ef4444' : '#d97706') + ';">' + r.status + ' · ' + r.priority + '</span>' +
+              '<div style="font-size: 13px; font-weight: 700; color: #0f172a; margin: 3px 0 1px;">' + r.title + '</div>' +
+              '<div style="font-size: 11px; color: #64748b; margin-bottom: 3px;">📍 ' + r.location + '</div>' +
+              '<div style="font-size: 11px; color: #334155; line-height: 1.35;">' + r.details + '</div>' +
+              (r.contact ? '<div style="font-size: 11px; color: #0284c7; font-weight: 600; margin-top: 4px;">📞 ' + r.contact + '</div>' : '') +
+              '</div>'
+            )
+            .addTo(map);
+        }
+
+        el.addEventListener('touchstart', function() { repTouchMoved = false; }, { passive: true });
+        el.addEventListener('touchmove', function() { repTouchMoved = true; }, { passive: true });
+        el.addEventListener('touchend', function(e) {
+          if (!repTouchMoved) handleReportTap(e);
+        });
+        el.addEventListener('click', handleReportTap);
 
         var marker = new maplibregl.Marker({ element: el, anchor: 'center' })
           .setLngLat([r.lng, r.lat])
@@ -812,6 +854,18 @@ export default function MobileGoogleMap({
             placeholderTextColor="#94A3B8"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onSubmitEditing={() => {
+              if (filteredCenters.length > 0) {
+                const item = filteredCenters[0];
+                setSelectedCenter(item);
+                postToWeb({
+                  type: "FLY_TO",
+                  lat: item.lat,
+                  lng: item.lng,
+                });
+                setSearchQuery("");
+              }
+            }}
           />
           {searchQuery ? (
             <Pressable onPress={() => setSearchQuery("")} style={styles.iconButtonSmall}>
@@ -823,6 +877,77 @@ export default function MobileGoogleMap({
             <Navigation color="#4285F4" size={18} />
           </Pressable>
         </View>
+
+        {/* Floating Search Results Dropdown */}
+        {searchQuery.trim().length > 0 && (
+          <View style={styles.searchResultsDropdown}>
+            <View style={styles.searchResultsHeader}>
+              <Text style={styles.searchResultsHeaderText}>
+                MATCHING SHELTERS ({filteredCenters.length})
+              </Text>
+              <Text style={styles.searchResultsHeaderHint}>Tap to view</Text>
+            </View>
+            <ScrollView
+              style={{ maxHeight: 180 }}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
+              {filteredCenters.length === 0 ? (
+                <View style={styles.searchNoResult}>
+                  <AlertTriangle color="#F59E0B" size={14} />
+                  <Text style={styles.searchNoResultText}>
+                    No shelters match "{searchQuery}"
+                  </Text>
+                </View>
+              ) : (
+                filteredCenters.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    style={styles.searchResultItem}
+                    onPress={() => {
+                      setSelectedCenter(item);
+                      postToWeb({
+                        type: "FLY_TO",
+                        lat: item.lat,
+                        lng: item.lng,
+                      });
+                      setSearchQuery("");
+                    }}
+                  >
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.searchResultName} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.searchResultSub} numberOfLines={1}>
+                        📍 {item.barangay} · {item.distance}
+                      </Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.searchResultBadge,
+                        {
+                          backgroundColor:
+                            item.status === "Open"
+                              ? "rgba(16, 185, 129, 0.2)"
+                              : "rgba(239, 68, 68, 0.2)",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.searchResultBadgeText,
+                          { color: item.status === "Open" ? "#10B981" : "#EF4444" },
+                        ]}
+                      >
+                        {item.capacity - item.occupancy} beds
+                      </Text>
+                    </View>
+                  </Pressable>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Quick Filter Chips (Horizontal Scrollable for all screen widths) */}
         <ScrollView
@@ -1240,6 +1365,79 @@ const styles = StyleSheet.create({
     width: 1,
     height: 18,
     backgroundColor: "#334155",
+  },
+  searchResultsDropdown: {
+    backgroundColor: "rgba(15, 23, 42, 0.98)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(56, 189, 248, 0.35)",
+    padding: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  searchResultsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(51, 65, 85, 0.6)",
+    marginBottom: 4,
+  },
+  searchResultsHeaderText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#94A3B8",
+    letterSpacing: 0.5,
+  },
+  searchResultsHeaderHint: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#38BDF8",
+  },
+  searchResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    marginVertical: 1,
+  },
+  searchResultName: {
+    color: "#F8FAFC",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  searchResultSub: {
+    color: "#94A3B8",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  searchResultBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  searchResultBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  searchNoResult: {
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  searchNoResultText: {
+    color: "#94A3B8",
+    fontSize: 11,
+    fontWeight: "600",
+    textAlign: "center",
   },
   iconButtonSmall: {
     padding: 4,

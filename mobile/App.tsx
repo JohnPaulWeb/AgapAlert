@@ -11,7 +11,6 @@ import {
   Crosshair,
   Eye,
   EyeOff,
-  Flame,
   HeartHandshake,
   Home,
   Info,
@@ -26,7 +25,6 @@ import {
   Phone,
   Plus,
   Radio,
-  RefreshCw,
   Search,
   Send,
   Settings as SettingsIcon,
@@ -39,8 +37,6 @@ import {
   User,
   UserCheck,
   Users,
-  Volume2,
-  VolumeX,
   Waves,
   Wind,
   X,
@@ -139,58 +135,6 @@ export const LOCATIONS: LocationPreset[] = [
     status: "Warning",
     lat: 16.0034,
     lng: 120.3850,
-  },
-  {
-    id: "poblacion_sb",
-    name: "Poblacion Sur, Santa Barbara",
-    region: "Pangasinan",
-    riverName: "Sinocalan River",
-    riverLevel: 5.82,
-    stormSignal: 2,
-    windSpeed: 65,
-    rainRate: 35,
-    status: "Warning",
-    lat: 15.9985,
-    lng: 120.4010,
-  },
-  {
-    id: "marikina",
-    name: "Marikina City",
-    region: "Eastern Metro Manila",
-    riverName: "Marikina River",
-    riverLevel: 16.4,
-    stormSignal: 3,
-    windSpeed: 88,
-    rainRate: 28,
-    status: "Warning",
-    lat: 14.6507,
-    lng: 121.1029,
-  },
-  {
-    id: "pasig",
-    name: "Pasig City",
-    region: "Metro Manila Delta",
-    riverName: "Pasig Floodway",
-    riverLevel: 15.6,
-    stormSignal: 3,
-    windSpeed: 75,
-    rainRate: 22,
-    status: "Warning",
-    lat: 14.5764,
-    lng: 121.0851,
-  },
-  {
-    id: "cagayan",
-    name: "Tuguegarao, Cagayan",
-    region: "Cagayan Valley",
-    riverName: "Cagayan River Basin",
-    riverLevel: 18.9,
-    stormSignal: 4,
-    windSpeed: 140,
-    rainRate: 45,
-    status: "Critical",
-    lat: 17.6132,
-    lng: 121.7270,
   },
 ];
 
@@ -368,7 +312,6 @@ export default function App() {
   const [liveRiverLevel, setLiveRiverLevel] = useState(LOCATIONS[0].riverLevel);
   const [liveRainRate, setLiveRainRate] = useState(LOCATIONS[0].rainRate);
   const [liveWindSpeed, setLiveWindSpeed] = useState(LOCATIONS[0].windSpeed);
-  const [isSimulatingSpike, setIsSimulatingSpike] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState("Just now");
 
   // Centers & Reports State
@@ -381,20 +324,8 @@ export default function App() {
   const [showSosModal, setShowSosModal] = useState(false);
   const [showResponderSosModal, setShowResponderSosModal] = useState<IncidentReport | null>(null);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [showChecklistModal, setShowChecklistModal] = useState(false);
-  const [showSectorModal, setShowSectorModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
-
-  // Go Bag Checklist Items
-  const [checklist, setChecklist] = useState([
-    { id: "c1", label: "3 days potable water (1 gallon/person/day)", checked: true },
-    { id: "c2", label: "Non-perishable canned food & manual opener", checked: true },
-    { id: "c3", label: "Power bank, radio & flashlights with batteries", checked: true },
-    { id: "c4", label: "Prescription medicines & First Aid kit", checked: false },
-    { id: "c5", label: "Important IDs in waterproof ziplock bags", checked: false },
-    { id: "c6", label: "Emergency signaling whistle", checked: true },
-  ]);
 
   useEffect(() => {
     initialize();
@@ -468,28 +399,7 @@ export default function App() {
     return reports.find((r) => r.category === "sos" && (r.status === "NEW" || r.status === "ACKNOWLEDGED"));
   }, [reports]);
 
-  // Simulate water level spike
-  const triggerSimulationSpike = () => {
-    setIsSimulatingSpike(true);
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      setLiveRiverLevel((prev) => Math.round((prev + 0.18) * 100) / 100);
-      setLiveRainRate((prev) => prev + 5);
-      if (step >= 5) {
-        clearInterval(interval);
-        setIsSimulatingSpike(false);
-      }
-    }, 600);
-  };
 
-  const resetSimulation = () => {
-    setLiveRiverLevel(selectedLoc.riverLevel);
-    setLiveRainRate(selectedLoc.rainRate);
-    setLiveWindSpeed(selectedLoc.windSpeed);
-    setIsSimulatingSpike(false);
-    Alert.alert("Simulation Reset", "River and rainfall levels returned to normal baseline.");
-  };
 
   const handleCreateReport = (newRep: Omit<IncidentReport, "id" | "timestamp" | "status">) => {
     const latOffset = (Math.random() - 0.5) * 0.006;
@@ -573,13 +483,6 @@ export default function App() {
         <Text style={styles.advisoryText} numberOfLines={1}>
           {selectedLoc.name} · {selectedLoc.riverName} ({liveRiverLevel}m)
         </Text>
-        <Pressable
-          style={styles.checklistBtn}
-          onPress={() => setShowChecklistModal(true)}
-        >
-          <CheckCircle2 color="#86EFAC" size={13} />
-          <Text style={styles.checklistBtnText}>Go-Bag</Text>
-        </Pressable>
       </View>
 
       {/* 2. Top Command Header with Brand & Auth/Role Badges */}
@@ -691,39 +594,17 @@ export default function App() {
         overScrollMode="never"
         scrollEnabled={isScrollEnabled}
       >
-        {/* Monitored Sector Selector & Simulation Trigger */}
+        {/* Monitored Sector Badge */}
         <View style={styles.sectorBar}>
-          <Pressable
-            style={styles.sectorPicker}
-            onPress={() => setShowSectorModal(true)}
-          >
+          <View style={[styles.sectorPicker, { flex: 1 }]}>
             <Compass color={C.cyan} size={18} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.microLabel}>MONITORED SECTOR</Text>
               <Text style={styles.sectorName} numberOfLines={1}>{selectedLoc.name}</Text>
             </View>
-            <ChevronRight color={C.textMuted} size={16} />
-          </Pressable>
-
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <Pressable
-              style={[styles.simSpikeBtn, isSimulatingSpike && { opacity: 0.6 }]}
-              onPress={triggerSimulationSpike}
-              disabled={isSimulatingSpike}
-            >
-              <Flame color={C.amber} size={13} />
-              <Text style={styles.simSpikeText}>
-                {isSimulatingSpike ? "Surging…" : "Surge"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[styles.simSpikeBtn, { borderColor: C.border }]}
-              onPress={resetSimulation}
-            >
-              <RefreshCw color={C.cyan} size={12} />
-              <Text style={[styles.simSpikeText, { color: C.textPrimary }]}>Reset</Text>
-            </Pressable>
+            <View style={{ backgroundColor: "rgba(6, 182, 212, 0.12)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, borderWidth: 1, borderColor: "rgba(6, 182, 212, 0.3)" }}>
+              <Text style={{ color: C.cyan, fontSize: 10, fontWeight: "700" }}>PANGASINAN</Text>
+            </View>
           </View>
         </View>
 
@@ -1191,85 +1072,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* 10. Go-Bag Checklist Modal */}
-      <Modal visible={showChecklistModal} transparent animationType="slide">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHead}>
-              <View>
-                <Text style={styles.modalTag}>DISASTER PREPAREDNESS</Text>
-                <Text style={styles.modalTitle}>Go-Bag Essentials Checklist</Text>
-              </View>
-              <Pressable style={styles.closeBtn} onPress={() => setShowChecklistModal(false)}>
-                <X color={C.textPrimary} size={18} />
-              </Pressable>
-            </View>
 
-            <ScrollView style={{ maxHeight: 300 }}>
-              {checklist.map((item) => (
-                <Pressable
-                  key={item.id}
-                  style={styles.checkItemRow}
-                  onPress={() => {
-                    setChecklist(
-                      checklist.map((c) => (c.id === item.id ? { ...c, checked: !c.checked } : c))
-                    );
-                  }}
-                >
-                  <CheckCircle2 color={item.checked ? C.cyan : C.textMuted} size={18} />
-                  <Text style={[styles.checkItemLabel, item.checked && { color: C.textPrimary }]}>
-                    {item.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <Pressable
-              style={[styles.primaryActionBtnModal, { marginTop: 12 }]}
-              onPress={() => setShowChecklistModal(false)}
-            >
-              <Text style={styles.primaryActionTextModal}>Done</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
-      {/* 11. Sector Picker Modal */}
-      <Modal visible={showSectorModal} transparent animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHead}>
-              <Text style={styles.modalTitle}>Select Monitored Sector</Text>
-              <Pressable style={styles.closeBtn} onPress={() => setShowSectorModal(false)}>
-                <X color={C.textPrimary} size={18} />
-              </Pressable>
-            </View>
-
-            {LOCATIONS.map((loc) => (
-              <Pressable
-                key={loc.id}
-                style={[
-                  styles.sectorOption,
-                  selectedLoc.id === loc.id && { borderColor: C.cyan, backgroundColor: C.cyanGlow },
-                ]}
-                onPress={() => {
-                  setSelectedLoc(loc);
-                  setLiveRiverLevel(loc.riverLevel);
-                  setLiveWindSpeed(loc.windSpeed);
-                  setLiveRainRate(loc.rainRate);
-                  setShowSectorModal(false);
-                }}
-              >
-                <Compass color={C.cyan} size={18} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.sectorOptionTitle}>{loc.name}</Text>
-                  <Text style={styles.sectorOptionSub}>{loc.riverName} · {loc.region}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      </Modal>
 
       {/* 12. Role Switcher Modal */}
       <Modal visible={showRoleModal} transparent animationType="fade">
