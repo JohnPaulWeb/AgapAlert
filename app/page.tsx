@@ -1817,254 +1817,339 @@ export default function Page() {
 
       {/* 1. AUTHENTICATION MODAL (SIGN IN / SIGN UP) */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/85 p-4 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-2xl border border-cyan-500/40 bg-slate-900/95 p-6 sm:p-7 shadow-2xl shadow-cyan-950/60 animate-in fade-in zoom-in-95 duration-200">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-800/80 pb-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-inner">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold tracking-wider text-cyan-400 border border-cyan-500/25 uppercase">
-                      <Lock className="h-3 w-3" /> Encrypted Disaster Network
-                    </span>
-                  </div>
-                  <h3 className="mt-1 text-lg font-black tracking-tight text-white">
-                    {authMode === "signin" ? "Sign In to AgapAlert" : "Create Response Account"}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Access Pangasinan & Metro Manila flood telemetry, water gauge feeds, and evacuation routing.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAuthModal(false)}
-                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/90 p-3 sm:p-4 backdrop-blur-xl">
+          <div
+            className="auth-modal-container w-full max-w-[920px] max-h-[92vh] rounded-3xl border border-white/[0.08] bg-[#060d1b]/95 shadow-2xl shadow-black/60 overflow-hidden"
+            style={{ animation: "authModalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+          >
+            <div className="flex flex-col md:flex-row h-full max-h-[92vh]">
+              {/* ── LEFT BRANDING PANEL ── */}
+              <div className="relative hidden md:flex md:w-[320px] shrink-0 flex-col justify-between overflow-hidden p-6"
+                style={{
+                  background: "linear-gradient(165deg, #061825 0%, #07111f 40%, #0a0e1a 100%)",
+                }}
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+                {/* Animated gradient orbs */}
+                <div className="absolute -top-20 -left-20 h-64 w-64 rounded-full opacity-40"
+                  style={{ background: "radial-gradient(circle, rgba(6,182,212,0.35) 0%, transparent 70%)", animation: "authOrbFloat 8s ease-in-out infinite" }} />
+                <div className="absolute -bottom-16 -right-16 h-52 w-52 rounded-full opacity-30"
+                  style={{ background: "radial-gradient(circle, rgba(16,185,129,0.3) 0%, transparent 70%)", animation: "authOrbFloat 10s ease-in-out infinite reverse" }} />
+                <div className="absolute top-1/2 left-1/3 h-36 w-36 rounded-full opacity-20"
+                  style={{ background: "radial-gradient(circle, rgba(56,189,248,0.25) 0%, transparent 70%)", animation: "authOrbFloat 12s ease-in-out infinite 2s" }} />
 
-            {/* Mode Switcher Tabs */}
-            <div className="mt-5 flex rounded-xl border border-slate-800 bg-slate-950/80 p-1">
-              <button
-                type="button"
-                onClick={() => setAuthMode("signin")}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  authMode === "signin"
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <LogIn className="h-3.5 w-3.5" /> Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode("signup")}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-                  authMode === "signup"
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <UserPlus className="h-3.5 w-3.5" /> Create Account
-              </button>
-            </div>
+                {/* Grid pattern overlay */}
+                <div className="absolute inset-0 opacity-[0.04]"
+                  style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
 
-            {/* Role Picker Cards */}
-            <div className="mt-4">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                Select Account Clearance Level
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setAuthRole("resident")}
-                  className={`flex flex-col items-start p-3 rounded-xl border transition text-left cursor-pointer ${
-                    authRole === "resident"
-                      ? "border-cyan-500 bg-cyan-500/10 shadow-sm shadow-cyan-500/10"
-                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Users className={`h-4 w-4 ${authRole === "resident" ? "text-cyan-400" : "text-slate-400"}`} />
-                    <span className={`text-xs font-bold ${authRole === "resident" ? "text-cyan-300" : "text-slate-200"}`}>
-                      Resident Citizen
-                    </span>
+                <div className="relative z-10">
+                  {/* Logo area */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 shadow-lg shadow-cyan-500/10">
+                      <ShieldCheck className="h-6 w-6 text-cyan-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>AgapAlert</h2>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-400/80">Disaster Response</p>
+                    </div>
                   </div>
-                  <span className="text-[10.5px] text-slate-400 leading-tight">
-                    Emergency SOS, evacuation route map & rainfall radar
-                  </span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => setAuthRole("official")}
-                  className={`flex flex-col items-start p-3 rounded-xl border transition text-left cursor-pointer ${
-                    authRole === "official"
-                      ? "border-emerald-500 bg-emerald-500/10 shadow-sm shadow-emerald-500/10"
-                      : "border-slate-800 bg-slate-950/50 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <ShieldCheck className={`h-4 w-4 ${authRole === "official" ? "text-emerald-400" : "text-slate-400"}`} />
-                    <span className={`text-xs font-bold ${authRole === "official" ? "text-emerald-300" : "text-slate-200"}`}>
-                      MDRRMO Official
-                    </span>
-                  </div>
-                  <span className="text-[10.5px] text-slate-400 leading-tight">
-                    Evac capacity manager, relief inventory & alert dispatch
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleAuthSubmit} className="mt-4 space-y-3">
-              {authMode === "signup" && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-300">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Maria Santos"
-                      value={authName}
-                      onChange={(e) => setAuthName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-                    />
+                  {/* Feature highlights */}
+                  <div className="space-y-4">
+                    {[
+                      { icon: Radio, label: "Real-Time Flood Monitoring", desc: "Live river gauge telemetry across Pangasinan" },
+                      { icon: Navigation2, label: "Evacuation Route Mapping", desc: "GPS-guided safe pathways to shelters" },
+                      { icon: Siren, label: "Emergency SOS Beacon", desc: "One-tap distress signal to MDRRMO units" },
+                    ].map((feat, i) => (
+                      <div key={i} className="flex items-start gap-3 group" style={{ animation: `authFeatureSlide 0.5s ease-out ${0.15 + i * 0.1}s both` }}>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-all duration-300">
+                          <feat.icon className="h-4 w-4 text-cyan-400" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-bold text-white/90">{feat.label}</p>
+                          <p className="text-[11px] text-slate-400 leading-snug">{feat.desc}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@example.ph"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-                  />
+                {/* Bottom trust badges */}
+                <div className="relative z-10 mt-6">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+                    <Lock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <p className="text-[10.5px] text-slate-400 leading-snug">
+                      <span className="text-emerald-400 font-semibold">End-to-end encrypted</span> — Your data is secured with AES-256 encryption protocols.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-medium text-slate-300">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                  <input
-                    type={showAuthPassword ? "text" : "password"}
-                    required
-                    placeholder="••••••••"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    className="w-full pl-9 pr-10 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-                  />
+              {/* ── RIGHT FORM PANEL ── */}
+              <div className="flex-1 flex flex-col p-5 sm:p-6 overflow-y-auto">
+                {/* Close button */}
+                <div className="flex justify-end mb-1">
                   <button
-                    type="button"
-                    onClick={() => setShowAuthPassword(!showAuthPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
+                    onClick={() => setShowAuthModal(false)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-white/[0.06] hover:text-white transition-all duration-200 cursor-pointer"
                   >
-                    {showAuthPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
 
-              {authMode === "signup" && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-300">Barangay Sector</label>
-                      <select
-                        value={authBarangay}
-                        onChange={(e) => setAuthBarangay(e.target.value)}
-                        className="w-full px-2.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-cyan-500"
-                      >
-                        <option value="Dalongue, Santa Barbara">Dalongue, Santa Barbara</option>
-                        <option value="Poblacion Sur, Santa Barbara">Poblacion Sur, Santa Barbara</option>
-                        <option value="Tuliao, Santa Barbara">Tuliao, Santa Barbara</option>
-                        <option value="Minien, Santa Barbara">Minien, Santa Barbara</option>
-                        <option value="Sto. Niño, Marikina">Sto. Niño, Marikina</option>
-                      </select>
-                    </div>
+                {/* Mobile-only branding */}
+                <div className="flex md:hidden items-center gap-2.5 mb-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10">
+                    <ShieldCheck className="h-5 w-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>AgapAlert</h2>
+                    <p className="text-[9px] font-semibold uppercase tracking-widest text-cyan-400/70">Disaster Response Network</p>
+                  </div>
+                </div>
 
+                {/* Form header */}
+                <div className="mb-3">
+                  <h3 className="text-lg font-black tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                    {authMode === "signin" ? "Welcome back" : "Create your account"}
+                  </h3>
+                  <p className="mt-0.5 text-[12px] text-slate-400">
+                    {authMode === "signin"
+                      ? "Sign in to access flood telemetry & evacuation systems."
+                      : "Join the AgapAlert disaster response network."}
+                  </p>
+                </div>
+
+                {/* Mode Switcher */}
+                <div className="flex rounded-xl border border-white/[0.08] bg-white/[0.03] p-1 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode("signin")}
+                    className={`flex-1 py-2 text-[12px] font-bold rounded-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 ${
+                      authMode === "signin"
+                        ? "bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <LogIn className="h-3.5 w-3.5" /> Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode("signup")}
+                    className={`flex-1 py-2 text-[12px] font-bold rounded-lg transition-all duration-300 cursor-pointer flex items-center justify-center gap-1.5 ${
+                      authMode === "signup"
+                        ? "bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <UserPlus className="h-3.5 w-3.5" /> Create Account
+                  </button>
+                </div>
+
+                {/* Role Picker — compact horizontal layout */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-2">
+                    Account Type
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("resident")}
+                      className={`group relative flex items-center gap-2.5 p-2.5 rounded-xl border-2 transition-all duration-300 text-left cursor-pointer ${
+                        authRole === "resident"
+                          ? "border-cyan-500/60 bg-cyan-500/[0.08]"
+                          : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.15]"
+                      }`}
+                    >
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${
+                        authRole === "resident"
+                          ? "bg-cyan-500/20 border border-cyan-500/30"
+                          : "bg-white/[0.05] border border-white/[0.08]"
+                      }`}>
+                        <Users className={`h-3.5 w-3.5 transition-colors duration-300 ${authRole === "resident" ? "text-cyan-400" : "text-slate-400"}`} />
+                      </div>
+                      <div>
+                        <span className={`text-[12px] font-bold block leading-tight transition-colors ${authRole === "resident" ? "text-cyan-300" : "text-slate-200"}`}>
+                          Resident
+                        </span>
+                        <span className="text-[10px] text-slate-500 leading-tight">SOS & evacuation</span>
+                      </div>
+                      {authRole === "resident" && <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 absolute top-2 right-2" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAuthRole("official")}
+                      className={`group relative flex items-center gap-2.5 p-2.5 rounded-xl border-2 transition-all duration-300 text-left cursor-pointer ${
+                        authRole === "official"
+                          ? "border-emerald-500/60 bg-emerald-500/[0.08]"
+                          : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.15]"
+                      }`}
+                    >
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${
+                        authRole === "official"
+                          ? "bg-emerald-500/20 border border-emerald-500/30"
+                          : "bg-white/[0.05] border border-white/[0.08]"
+                      }`}>
+                        <ShieldCheck className={`h-3.5 w-3.5 transition-colors duration-300 ${authRole === "official" ? "text-emerald-400" : "text-slate-400"}`} />
+                      </div>
+                      <div>
+                        <span className={`text-[12px] font-bold block leading-tight transition-colors ${authRole === "official" ? "text-emerald-300" : "text-slate-200"}`}>
+                          MDRRMO Official
+                        </span>
+                        <span className="text-[10px] text-slate-500 leading-tight">Command & dispatch</span>
+                      </div>
+                      {authRole === "official" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 absolute top-2 right-2" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleAuthSubmit} className="space-y-3 flex-1">
+                  {authMode === "signup" && (
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-300">
-                        Emergency Mobile
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-300">Full Name</label>
+                      <div className="relative group">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
                         <input
-                          type="tel"
-                          placeholder="0917-xxx-xxxx"
-                          value={authPhone}
-                          onChange={(e) => setAuthPhone(e.target.value)}
-                          className="w-full pl-8 pr-2.5 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                          type="text"
+                          required
+                          placeholder="e.g. Maria Santos"
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 text-[13px] bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 transition-all duration-300 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-500/[0.04] focus:ring-2 focus:ring-cyan-500/10 hover:border-white/[0.15]"
                         />
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  )}
 
-              <button
-                type="submit"
-                disabled={authLoading}
-                className="w-full mt-3 flex items-center justify-center gap-2 rounded-xl bg-cyan-500 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-400 cursor-pointer disabled:opacity-50"
-              >
-                {authLoading ? (
-                  "Authenticating..."
-                ) : authMode === "signin" ? (
-                  <>
-                    <ShieldCheck className="h-4 w-4" /> Sign In & Access Console
-                  </>
-                ) : (
-                  <>
-                    <BadgeCheck className="h-4 w-4" /> Register & Activate Telemetry
-                  </>
-                )}
-              </button>
-            </form>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-300">Email Address</label>
+                    <div className="relative group">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+                      <input
+                        type="email"
+                        required
+                        placeholder="name@example.ph"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 text-[13px] bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 transition-all duration-300 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-500/[0.04] focus:ring-2 focus:ring-cyan-500/10 hover:border-white/[0.15]"
+                      />
+                    </div>
+                  </div>
 
-            {/* Instant 1-Click Demo Profiles */}
-            <div className="mt-5 border-t border-slate-800/80 pt-3">
-              <div className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                <Sparkles className="h-3.5 w-3.5 text-amber-400" /> Instant 1-Click Test Credentials:
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin("resident")}
-                  className="flex items-center gap-2.5 p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 hover:bg-slate-900 transition text-left cursor-pointer"
-                >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 text-xs font-bold">
-                    J
+                  <div>
+                    <label className="mb-1 block text-[11px] font-semibold text-slate-300">Password</label>
+                    <div className="relative group">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+                      <input
+                        type={showAuthPassword ? "text" : "password"}
+                        required
+                        placeholder="••••••••"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="w-full pl-10 pr-12 py-2.5 text-[13px] bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 transition-all duration-300 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-500/[0.04] focus:ring-2 focus:ring-cyan-500/10 hover:border-white/[0.15]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAuthPassword(!showAuthPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer p-0.5"
+                      >
+                        {showAuthPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-200 truncate">Juan Dela Cruz</div>
-                    <div className="text-[10px] text-cyan-400 truncate">Resident • Dalongue</div>
-                  </div>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin("official")}
-                  className="flex items-center gap-2.5 p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-emerald-500/50 hover:bg-slate-900 transition text-left cursor-pointer"
-                >
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-bold">
-                    R
+                  {authMode === "signup" && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="mb-1 block text-[11px] font-semibold text-slate-300">Barangay Sector</label>
+                        <select
+                          value={authBarangay}
+                          onChange={(e) => setAuthBarangay(e.target.value)}
+                          className="w-full px-3 py-2.5 text-[12px] bg-white/[0.04] border border-white/[0.08] rounded-xl text-white transition-all duration-300 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-500/[0.04] focus:ring-2 focus:ring-cyan-500/10 hover:border-white/[0.15] cursor-pointer appearance-none"
+                          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='m4.427 7.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427z'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
+                        >
+                          <option value="Dalongue, Santa Barbara">Dalongue, Santa Barbara</option>
+                          <option value="Poblacion Sur, Santa Barbara">Poblacion Sur, Santa Barbara</option>
+                          <option value="Tuliao, Santa Barbara">Tuliao, Santa Barbara</option>
+                          <option value="Minien, Santa Barbara">Minien, Santa Barbara</option>
+                          <option value="Sto. Niño, Marikina">Sto. Niño, Marikina</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-semibold text-slate-300">Emergency Mobile</label>
+                        <div className="relative group">
+                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+                          <input
+                            type="tel"
+                            placeholder="0917-xxx-xxxx"
+                            value={authPhone}
+                            onChange={(e) => setAuthPhone(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 text-[12px] bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 transition-all duration-300 focus:outline-none focus:border-cyan-500/50 focus:bg-cyan-500/[0.04] focus:ring-2 focus:ring-cyan-500/10 hover:border-white/[0.15]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full mt-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 py-3 text-[13px] font-extrabold text-slate-950 shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:shadow-cyan-500/40 hover:brightness-110 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {authLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full border-2 border-slate-950 border-t-transparent animate-spin" />
+                        Authenticating...
+                      </div>
+                    ) : authMode === "signin" ? (
+                      <>
+                        <ShieldCheck className="h-4.5 w-4.5" /> Sign In & Access Console
+                      </>
+                    ) : (
+                      <>
+                        <BadgeCheck className="h-4.5 w-4.5" /> Register & Activate Telemetry
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* Demo credentials divider */}
+                <div className="mt-3 pt-3 border-t border-white/[0.06]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-3 w-3 text-amber-400" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Quick Demo Access</span>
                   </div>
-                  <div className="overflow-hidden">
-                    <div className="text-xs font-bold text-slate-200 truncate">Capt. R. Soriano</div>
-                    <div className="text-[10px] text-emerald-400 truncate">MDRRMO Commander</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleQuickDemoLogin("resident")}
+                      className="group flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-cyan-500/30 hover:bg-cyan-500/[0.05] transition-all duration-300 text-left cursor-pointer"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500/25 to-cyan-600/10 border border-cyan-500/20 text-cyan-400 text-xs font-black group-hover:shadow-sm group-hover:shadow-cyan-500/10 transition-all">
+                        J
+                      </div>
+                      <div className="overflow-hidden">
+                        <div className="text-[12px] font-bold text-white truncate">Juan Dela Cruz</div>
+                        <div className="text-[10px] text-cyan-400/80 truncate font-medium">Resident • Dalongue</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleQuickDemoLogin("official")}
+                      className="group flex items-center gap-2.5 p-2.5 rounded-xl border border-white/[0.06] bg-white/[0.02] hover:border-emerald-500/30 hover:bg-emerald-500/[0.05] transition-all duration-300 text-left cursor-pointer"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500/25 to-emerald-600/10 border border-emerald-500/20 text-emerald-400 text-xs font-black group-hover:shadow-sm group-hover:shadow-emerald-500/10 transition-all">
+                        R
+                      </div>
+                      <div className="overflow-hidden">
+                        <div className="text-[12px] font-bold text-white truncate">Capt. R. Soriano</div>
+                        <div className="text-[10px] text-emerald-400/80 truncate font-medium">MDRRMO Commander</div>
+                      </div>
+                    </button>
                   </div>
-                </button>
+                </div>
               </div>
             </div>
           </div>

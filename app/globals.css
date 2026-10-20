@@ -88,19 +88,19 @@
 
 .dark {
   color-scheme: dark;
-  --background: #050b14;
+  --background: #0d1133;
   --foreground: #f1f5f9;
-  --card: #0b1526;
+  --card: #131845;
   --card-foreground: #f8fafc;
-  --popover: #0e1a2f;
+  --popover: #161d4d;
   --popover-foreground: #f8fafc;
   --primary: #06b6d4;
   --primary-foreground: #020617;
-  --secondary: #132238;
+  --secondary: #1a2050;
   --secondary-foreground: #f1f5f9;
-  --muted: #0f1d31;
+  --muted: #161c48;
   --muted-foreground: #94a3b8;
-  --accent: #152742;
+  --accent: #1e255a;
   --accent-foreground: #38bdf8;
   --destructive: #f43f5e;
   --border: rgba(255, 255, 255, 0.08);
@@ -111,11 +111,11 @@
   --chart-3: #10b981;
   --chart-4: #f59e0b;
   --chart-5: #8b5cf6;
-  --sidebar: #091222;
+  --sidebar: #0f143a;
   --sidebar-foreground: #f8fafc;
   --sidebar-primary: #06b6d4;
   --sidebar-primary-foreground: #020617;
-  --sidebar-accent: #132238;
+  --sidebar-accent: #1a2050;
   --sidebar-accent-foreground: #f1f5f9;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #06b6d4;
@@ -131,11 +131,12 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background-color: #050b14;
+    background-color: #0d1133;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.07) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, rgba(79, 70, 229, 0.05) 0px, transparent 40%);
     background-attachment: fixed;
   }
 
@@ -144,21 +145,21 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #050b14;
+    background: #0d1133;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #242b5e;
     border-radius: 9999px;
-    border: 2px solid #050b14;
+    border: 2px solid #0d1133;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #353d78;
   }
 }
 
 /* Glassmorphism & Executive Command Center Tokens */
 .glass-panel {
-  background: rgba(11, 21, 38, 0.72);
+  background: rgba(19, 24, 69, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -166,7 +167,7 @@
 }
 
 .glass-panel-elevated {
-  background: rgba(14, 26, 47, 0.85);
+  background: rgba(22, 29, 77, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -208,12 +209,12 @@
 
 /* Leaflet — Command Center Map Chrome */
 .leaflet-container {
-  background: #070d18;
+  background: #0d1133;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: rgba(11, 21, 38, 0.96);
+  background: rgba(19, 24, 69, 0.96);
   color: #f1f5f9;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.7);
@@ -235,7 +236,7 @@
   color: #38bdf8 !important;
 }
 .leaflet-control-attribution {
-  background: rgba(5, 11, 20, 0.85) !important;
+  background: rgba(13, 17, 51, 0.85) !important;
   color: #64748b !important;
   font-size: 10px !important;
   border-radius: 8px 0 0 0;
@@ -249,11 +250,46 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
 .leaflet-bar a {
-  background-color: #0b1526 !important;
+  background-color: #131845 !important;
   color: #cbd5e1 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 .leaflet-bar a:hover {
-  background-color: #132238 !important;
+  background-color: #1a2050 !important;
   color: #38bdf8 !important;
+}
+
+/* Auth Modal Animations */
+@keyframes authModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes authOrbFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(12px, -18px) scale(1.08);
+  }
+  66% {
+    transform: translate(-8px, 10px) scale(0.95);
+  }
+}
+
+@keyframes authFeatureSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
