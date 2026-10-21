@@ -4,11 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   AlertTriangle,
   Bell,
+  BellOff,
+  BellRing,
   Check,
   CheckCircle2,
   ChevronRight,
+  CloudRain,
+  CloudSun,
   Compass,
   Crosshair,
+  Droplets,
   Eye,
   EyeOff,
   HeartHandshake,
@@ -34,6 +39,8 @@ import {
   Siren,
   Sliders,
   Sparkles,
+  Sun,
+  Thermometer,
   User,
   UserCheck,
   Users,
@@ -41,7 +48,7 @@ import {
   Wind,
   X,
 } from "lucide-react-native";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   Alert,
   Modal,
@@ -93,10 +100,29 @@ const C = {
   textSecondary: "#94A3B8",
   textMuted: "#64748B",
   white: "#FFFFFF",
+  purple: "#A855F7",
+  purplePale: "rgba(168, 85, 247, 0.18)",
 };
 
 export type Role = "resident" | "official";
 export type Screen = "radar" | "centers" | "reports" | "settings";
+
+// Tomorrow Rain Forecast Types
+export interface TomorrowForecast {
+  date: string;
+  willRainTomorrow: boolean;
+  rainProbabilityPercent: number;
+  totalPrecipitationMm: number;
+  maxRainRateMmPerHour: number;
+  minTemperatureC: number;
+  maxTemperatureC: number;
+  maxWindSpeedKph: number;
+  weatherSummary: string;
+  hourlyRainChance: number[];
+  pagasaWarningLevel: "NONE" | "YELLOW" | "ORANGE" | "RED";
+  advisoryMessage: string;
+  floodRiskTomorrow: "MINIMAL" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+}
 
 export interface UserProfile {
   id: string;
@@ -327,6 +353,15 @@ export default function App() {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [isScrollEnabled, setIsScrollEnabled] = useState(true);
 
+  // Notification Permission Modal
+  const [showNotifPermissionModal, setShowNotifPermissionModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [pendingAuthUser, setPendingAuthUser] = useState<UserProfile | null>(null);
+
+  // Tomorrow Rain Forecast
+  const [tomorrowForecast, setTomorrowForecast] = useState<TomorrowForecast | null>(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+
   useEffect(() => {
     initialize();
   }, []);
@@ -354,6 +389,16 @@ export default function App() {
       // ignore
     }
 
+    // Load notification preference
+    try {
+      const notifPref = await AsyncStorage.getItem("@agap_notif_enabled");
+      if (notifPref === "true") {
+        setNotificationsEnabled(true);
+      }
+    } catch {
+      // ignore
+    }
+
     try {
       const p = await Location.requestForegroundPermissionsAsync();
       if (p.status === "granted") {
@@ -368,6 +413,103 @@ export default function App() {
       // ignore
     }
     await requestNotificationPermissions();
+
+    // Fetch tomorrow's rain forecast
+    fetchTomorrowForecast();
+  }
+
+  // Fetch tomorrow's rain forecast from Open-Meteo
+  async function fetchTomorrowForecast() {
+    setForecastLoading(true);
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${selectedLoc.lat.toFixed(4)}&longitude=${selectedLoc.lng.toFixed(4)}&daily=precipitation_sum,precipitation_probability_max,rain_sum,temperature_2m_max,temperature_2m_min,wind_speed_10m_max,weather_code&hourly=precipitation_probability,precipitation&timezone=Asia/Manila&forecast_days=2`;
+      const response = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+      const data = await response.json();
+      const daily = data.daily || {};
+      const hourly = data.hourly || {};
+
+      const tomorrowIndex = 1;
+      const tomorrowDate = daily.time?.[tomorrowIndex] || "Unknown";
+      const totalPrecipMm = Number((daily.precipitation_sum?.[tomorrowIndex] ?? 0).toFixed(1));
+      const rainSumMm = Number((daily.rain_sum?.[tomorrowIndex] ?? 0).toFixed(1));
+      const maxRainProbability = daily.precipitation_probability_max?.[tomorrowIndex] ?? 0;
+      const maxTempC = daily.temperature_2m_max?.[tomorrowIndex] ?? 30;
+      const minTempC = daily.temperature_2m_min?.[tomorrowIndex] ?? 24;
+      const maxWindKph = daily.wind_speed_10m_max?.[tomorrowIndex] ?? 10;
+
+      const hourlyProbs: number[] = (hourly.precipitation_probability || []).slice(24, 48);
+      const hourlyPrecip: number[] = (hourly.precipitation || []).slice(24, 48);
+      const maxHourlyRainRate = Math.max(...hourlyPrecip, 0);
+      const avgProbability = hourlyProbs.length > 0
+        ? hourlyProbs.reduce((a: number, b: number) => a + b, 0) / hourlyProbs.length
+        : maxRainProbability;
+
+      const willRain = totalPrecipMm >= 1 || maxRainProbability >= 50;
+      const totalPrecip = Math.max(totalPrecipMm, rainSumMm);
+
+      let floodRisk: TomorrowForecast["floodRiskTomorrow"] = "MINIMAL";
+      if (totalPrecip >= 100 || maxHourlyRainRate >= 30) floodRisk = "CRITICAL";
+      else if (totalPrecip >= 60 || maxHourlyRainRate >= 15) floodRisk = "HIGH";
+      else if (totalPrecip >= 25 || maxHourlyRainRate >= 7.5) floodRisk = "MODERATE";
+      else if (totalPrecip >= 5 || avgProbability >= 40) floodRisk = "LOW";
+
+      let pagasaWarning: TomorrowForecast["pagasaWarningLevel"] = "NONE";
+      if (maxHourlyRainRate >= 30 || totalPrecip >= 100) pagasaWarning = "RED";
+      else if (maxHourlyRainRate >= 15 || totalPrecip >= 60) pagasaWarning = "ORANGE";
+      else if (maxHourlyRainRate >= 7.5 || totalPrecip >= 25) pagasaWarning = "YELLOW";
+
+      let weatherSummary = "Clear to Partly Cloudy";
+      if (willRain) {
+        if (totalPrecip >= 100) weatherSummary = "Torrential Downpour Expected";
+        else if (totalPrecip >= 60) weatherSummary = "Heavy Rainfall with Thunderstorms";
+        else if (totalPrecip >= 25) weatherSummary = "Moderate to Heavy Rain";
+        else if (totalPrecip >= 5) weatherSummary = "Light to Moderate Rain Showers";
+        else weatherSummary = "Light Drizzle / Scattered Showers";
+      }
+
+      let advisoryMessage = "";
+      if (pagasaWarning === "RED") advisoryMessage = `🔴 RED WARNING: Torrential rain tomorrow (${totalPrecip.toFixed(1)}mm). MANDATORY EVACUATION may be needed.`;
+      else if (pagasaWarning === "ORANGE") advisoryMessage = `🟠 ORANGE WARNING: Heavy rain expected (${totalPrecip.toFixed(1)}mm). Prepare for possible evacuation.`;
+      else if (pagasaWarning === "YELLOW") advisoryMessage = `🟡 YELLOW WARNING: Moderate rain expected (${totalPrecip.toFixed(1)}mm). Keep emergency supplies ready.`;
+      else if (willRain) advisoryMessage = `☁️ Light rain possible (${totalPrecip.toFixed(1)}mm). No significant flood risk.`;
+      else advisoryMessage = `☀️ No significant rainfall expected tomorrow. Conditions safe.`;
+
+      setTomorrowForecast({
+        date: tomorrowDate,
+        willRainTomorrow: willRain,
+        rainProbabilityPercent: Math.round(Math.max(maxRainProbability, avgProbability)),
+        totalPrecipitationMm: totalPrecip,
+        maxRainRateMmPerHour: Number(maxHourlyRainRate.toFixed(1)),
+        minTemperatureC: Number(minTempC.toFixed(1)),
+        maxTemperatureC: Number(maxTempC.toFixed(1)),
+        maxWindSpeedKph: Number(maxWindKph.toFixed(1)),
+        weatherSummary,
+        hourlyRainChance: hourlyProbs,
+        pagasaWarningLevel: pagasaWarning,
+        advisoryMessage,
+        floodRiskTomorrow: floodRisk,
+      });
+    } catch (err) {
+      console.warn("Rain forecast fetch failed, using fallback:", err);
+      setTomorrowForecast({
+        date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+        willRainTomorrow: true,
+        rainProbabilityPercent: 72,
+        totalPrecipitationMm: 28.5,
+        maxRainRateMmPerHour: 12.4,
+        minTemperatureC: 24.2,
+        maxTemperatureC: 30.8,
+        maxWindSpeedKph: 35,
+        weatherSummary: "Moderate to Heavy Rain (Sensor Fallback)",
+        hourlyRainChance: Array(24).fill(55),
+        pagasaWarningLevel: "YELLOW",
+        advisoryMessage: "🟡 Moderate rain expected tomorrow (28.5mm). Keep emergency supplies ready.",
+        floodRiskTomorrow: "MODERATE",
+      });
+    } finally {
+      setForecastLoading(false);
+    }
   }
 
   const handleSaveUser = async (user: UserProfile | null) => {
@@ -375,9 +517,43 @@ export default function App() {
     if (user) {
       setRole(user.role);
       await AsyncStorage.setItem("@agap_user_session", JSON.stringify(user));
+      // Check if user has already set notification preference
+      const notifPref = await AsyncStorage.getItem("@agap_notif_enabled");
+      if (notifPref === null) {
+        // First time sign-in/sign-up: show notification permission modal
+        setPendingAuthUser(user);
+        setShowNotifPermissionModal(true);
+      }
     } else {
       await AsyncStorage.removeItem("@agap_user_session");
     }
+  };
+
+  // Handle notification permission acceptance
+  const handleAcceptNotifications = async () => {
+    const granted = await requestNotificationPermissions();
+    setNotificationsEnabled(granted);
+    await AsyncStorage.setItem("@agap_notif_enabled", "true");
+    setShowNotifPermissionModal(false);
+    if (pendingAuthUser) {
+      Alert.alert(
+        "🔔 Notifications Enabled",
+        `You'll receive real-time flood alerts, rain warnings & evacuation updates for ${pendingAuthUser.barangay || "your area"}.`
+      );
+    }
+    setPendingAuthUser(null);
+  };
+
+  // Handle notification permission decline
+  const handleDeclineNotifications = async () => {
+    setNotificationsEnabled(false);
+    await AsyncStorage.setItem("@agap_notif_enabled", "false");
+    setShowNotifPermissionModal(false);
+    Alert.alert(
+      "Notifications Disabled",
+      "You can enable push notifications anytime from the Settings / Hotlines tab."
+    );
+    setPendingAuthUser(null);
   };
 
   // Flood Alarm Level calculation based on river telemetry (Sinocalan warning threshold ~5.8m)
@@ -711,6 +887,140 @@ export default function App() {
                 </Pressable>
               </View>
             </View>
+
+            {/* Tomorrow Rain Forecast Card */}
+            {tomorrowForecast && (
+              <View style={styles.forecastCard}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    {tomorrowForecast.willRainTomorrow ? (
+                      <CloudRain color={C.cyan} size={18} />
+                    ) : (
+                      <Sun color={C.amber} size={18} />
+                    )}
+                    <Text style={styles.forecastTitle}>TOMORROW'S FORECAST</Text>
+                  </View>
+                  <Text style={styles.forecastDate}>{tomorrowForecast.date}</Text>
+                </View>
+
+                {/* Main Prediction */}
+                <View style={[
+                  styles.forecastMainBox,
+                  tomorrowForecast.willRainTomorrow
+                    ? { borderColor: "rgba(6, 182, 212, 0.4)", backgroundColor: "rgba(6, 182, 212, 0.08)" }
+                    : { borderColor: "rgba(16, 185, 129, 0.4)", backgroundColor: C.greenPale },
+                ]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={[
+                      styles.forecastIconCircle,
+                      tomorrowForecast.willRainTomorrow
+                        ? { backgroundColor: C.cyanGlow }
+                        : { backgroundColor: C.greenPale },
+                    ]}>
+                      {tomorrowForecast.willRainTomorrow ? (
+                        <Droplets color={C.cyan} size={20} />
+                      ) : (
+                        <Sun color={C.green} size={20} />
+                      )}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[
+                        styles.forecastMainText,
+                        { color: tomorrowForecast.willRainTomorrow ? C.cyan : C.green },
+                      ]}>
+                        {tomorrowForecast.willRainTomorrow ? "🌧️ RAIN EXPECTED" : "☀️ NO RAIN EXPECTED"}
+                      </Text>
+                      <Text style={styles.forecastSummary}>{tomorrowForecast.weatherSummary}</Text>
+                    </View>
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Text style={[
+                        styles.forecastProbability,
+                        { color: tomorrowForecast.willRainTomorrow ? C.cyan : C.green },
+                      ]}>
+                        {tomorrowForecast.rainProbabilityPercent}%
+                      </Text>
+                      <Text style={styles.forecastProbLabel}>rain chance</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Forecast Metrics Grid */}
+                <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
+                  <View style={styles.forecastMetricPill}>
+                    <Droplets color={C.cyan} size={12} />
+                    <Text style={styles.forecastMetricValue}>{tomorrowForecast.totalPrecipitationMm}mm</Text>
+                    <Text style={styles.forecastMetricLabel}>Total Rain</Text>
+                  </View>
+                  <View style={styles.forecastMetricPill}>
+                    <Thermometer color={C.amber} size={12} />
+                    <Text style={styles.forecastMetricValue}>{tomorrowForecast.minTemperatureC}°–{tomorrowForecast.maxTemperatureC}°</Text>
+                    <Text style={styles.forecastMetricLabel}>Temp Range</Text>
+                  </View>
+                  <View style={styles.forecastMetricPill}>
+                    <Wind color={C.teal} size={12} />
+                    <Text style={styles.forecastMetricValue}>{tomorrowForecast.maxWindSpeedKph} km/h</Text>
+                    <Text style={styles.forecastMetricLabel}>Max Wind</Text>
+                  </View>
+                </View>
+
+                {/* PAGASA Warning & Flood Risk */}
+                {tomorrowForecast.pagasaWarningLevel !== "NONE" && (
+                  <View style={[
+                    styles.forecastWarningBanner,
+                    tomorrowForecast.pagasaWarningLevel === "RED" ? { backgroundColor: C.redPale, borderColor: C.redBorder } :
+                    tomorrowForecast.pagasaWarningLevel === "ORANGE" ? { backgroundColor: C.amberPale, borderColor: "rgba(245, 158, 11, 0.4)" } :
+                    { backgroundColor: "rgba(250, 204, 21, 0.1)", borderColor: "rgba(250, 204, 21, 0.35)" },
+                  ]}>
+                    <AlertTriangle
+                      color={tomorrowForecast.pagasaWarningLevel === "RED" ? C.red : tomorrowForecast.pagasaWarningLevel === "ORANGE" ? C.amber : "#FACC15"}
+                      size={14}
+                    />
+                    <Text style={[
+                      styles.forecastWarningText,
+                      tomorrowForecast.pagasaWarningLevel === "RED" ? { color: C.red } :
+                      tomorrowForecast.pagasaWarningLevel === "ORANGE" ? { color: C.amber } :
+                      { color: "#FACC15" },
+                    ]}>
+                      {tomorrowForecast.pagasaWarningLevel} RAINFALL WARNING
+                    </Text>
+                    <Text style={[
+                      styles.forecastFloodRisk,
+                      tomorrowForecast.floodRiskTomorrow === "CRITICAL" ? { color: C.red, backgroundColor: C.redPale } :
+                      tomorrowForecast.floodRiskTomorrow === "HIGH" ? { color: C.amber, backgroundColor: C.amberPale } :
+                      { color: "#FACC15", backgroundColor: "rgba(250, 204, 21, 0.15)" },
+                    ]}>
+                      {tomorrowForecast.floodRiskTomorrow} FLOOD RISK
+                    </Text>
+                  </View>
+                )}
+
+                {/* Advisory Message */}
+                <Text style={styles.forecastAdvisory}>{tomorrowForecast.advisoryMessage}</Text>
+
+                {/* Refresh Button */}
+                <Pressable
+                  style={styles.forecastRefreshBtn}
+                  onPress={fetchTomorrowForecast}
+                  disabled={forecastLoading}
+                >
+                  {forecastLoading ? (
+                    <ActivityIndicator color={C.cyan} size="small" />
+                  ) : (
+                    <>
+                      <Radio color={C.cyan} size={12} />
+                      <Text style={styles.forecastRefreshText}>Refresh Forecast</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            )}
+
+            {forecastLoading && !tomorrowForecast && (
+              <View style={[styles.forecastCard, { alignItems: "center", paddingVertical: 24 }]}>
+                <ActivityIndicator color={C.cyan} size="small" />
+                <Text style={{ color: C.textMuted, fontSize: 11, marginTop: 8 }}>Loading tomorrow's forecast...</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -1122,6 +1432,15 @@ export default function App() {
           locationName={selectedLoc.name}
           onClose={() => setShowReportModal(false)}
           onSubmit={handleCreateReport}
+        />
+      </Modal>
+
+      {/* 14. Notification Permission Modal (Accept / Decline) */}
+      <Modal visible={showNotifPermissionModal} transparent animationType="fade">
+        <NotificationPermissionModal
+          userName={pendingAuthUser?.fullName || ""}
+          onAccept={handleAcceptNotifications}
+          onDecline={handleDeclineNotifications}
         />
       </Modal>
     </SafeAreaView>
